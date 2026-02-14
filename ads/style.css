@@ -52,37 +52,6 @@ body {
 }
 
 /* ===================================================================
-   CENTER AREA — иконка WhatsApp
-   =================================================================== */
-.center-area {
-    flex-grow: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-}
-
-.wa-icon-bg {
-    width: 160px;
-    height: 160px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: pulse 2s infinite ease-in-out;
-}
-
-.wa-icon-bg svg {
-    width: 80px;
-    height: 80px;
-    fill: #ffffff;
-    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
-}
-
-/* ===================================================================
    BOTTOM AREA — кнопка WhatsApp
    =================================================================== */
 .bottom-area {
@@ -174,18 +143,6 @@ body {
     }
 }
 
-@keyframes pulse {
-
-    0%,
-    100% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.05);
-    }
-}
-
 /* ===================================================================
    RESPONSIVE
    =================================================================== */
@@ -196,16 +153,6 @@ body {
 
     .header__subtitle {
         font-size: 0.875rem;
-    }
-
-    .wa-icon-bg {
-        width: 140px;
-        height: 140px;
-    }
-
-    .wa-icon-bg svg {
-        width: 70px;
-        height: 70px;
     }
 
     .wa-button {
