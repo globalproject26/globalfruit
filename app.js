@@ -665,7 +665,7 @@ function renderCart() {
 }
 
 function buildOrderText(items) {
-    let text = "🛒 Заказ с GlobalFruit.kz:\n\n";
+    let text = "Заказ с GlobalFruit.kz:\n\n";
     items.forEach(item => {
         text += `${getDisplayProductName(item)} x ${formatQtyWithUnit(item, item.qty)}\n`;
     });
