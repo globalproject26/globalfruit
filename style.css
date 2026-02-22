@@ -23,6 +23,7 @@
     --radius: 16px;
     --radius-sm: 12px;
     --nav-height: 70px;
+    --categories-height: 64px;
     --wa-green: #25D366;
     --sale: #FF6B35;
     --sale-bg: #FFF3EE;
@@ -40,7 +41,7 @@ body {
     color: var(--text);
     min-height: 100dvh;
     overflow-x: hidden;
-    padding-bottom: calc(var(--nav-height) + 60px);
+    padding-bottom: calc(var(--nav-height) + var(--categories-height) + 18px);
 }
 
 /* ===== ЭКРАНЫ ===== */
@@ -187,7 +188,7 @@ body {
     margin-top: 2px;
 }
 
-/* ===== STICKY-БАР (категории + время обновления) ===== */
+/* ===== ФИКСИРОВАННЫЙ БАР КАТЕГОРИЙ ВНИЗУ ===== */
 .sticky-bar {
     position: fixed;
     bottom: var(--nav-height);
@@ -195,13 +196,23 @@ body {
     right: 0;
     z-index: 150;
     background: var(--bg);
-    padding: 8px 0;
-    border-top: 1px solid var(--border);
-    transition: transform 0.3s;
+    padding: 10px 0 5px;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease;
 }
 
-.sticky-bar.bottom {
-    bottom: var(--nav-height);
+/* Ограничение ширины на десктопе */
+@media (min-width: 480px) {
+    .sticky-bar {
+        max-width: 430px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+}
+
+/* Скрываем метку когда бар внизу, чтобы не загромождать */
+.sticky-bar .last-update {
+    display: none;
 }
 
 /* ===== КАТЕГОРИИ (чипсы) ===== */
@@ -209,7 +220,7 @@ body {
     display: flex;
     gap: 8px;
     overflow-x: auto;
-    padding: 0 16px 10px;
+    padding: 5px 16px 10px;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
 }
@@ -220,17 +231,20 @@ body {
 
 .cat-chip {
     flex-shrink: 0;
-    padding: 8px 18px;
+    padding: 12px 22px;
+    /* Чуть шире по высоте и вширь */
     border: 1.5px solid var(--border);
-    border-radius: 20px;
+    border-radius: 24px;
     background: var(--white);
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 14px;
+    /* Чуть крупнее шрифт */
+    font-weight: 600;
     font-family: inherit;
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
 .cat-chip:active {
@@ -398,24 +412,6 @@ body {
     white-space: nowrap;
 }
 
-/* ===== OUT OF STOCK ===== */
-.product-card.out-of-stock {
-    opacity: 0.5;
-    pointer-events: none;
-}
-
-.product-card.out-of-stock .product-emoji {
-    filter: grayscale(1);
-}
-
-.oos-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: #999;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
 /* ===== СЧЁТЧИК ===== */
 .counter {
     display: flex;
@@ -569,20 +565,51 @@ body {
 
 /* ===== БЛОК ЗАКАЗА (текст) ===== */
 .cart-summary {
-    margin: 16px 16px 100px;
+    margin: 16px 16px calc(var(--nav-height) + var(--categories-height) + 74px);
     background: var(--white);
     border-radius: var(--radius);
     padding: 16px;
     box-shadow: var(--shadow);
 }
 
+.summary-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
 .summary-label {
     font-size: 13px;
     font-weight: 600;
     color: var(--text-secondary);
-    margin-bottom: 8px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+.copy-btn {
+    border: 1px solid var(--border);
+    background: var(--white);
+    color: var(--text-secondary);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.copy-btn:active {
+    background: var(--green-pale);
+    border-color: var(--green);
+    color: var(--green-dark);
+}
+
+.copy-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .cart-text {
@@ -623,7 +650,7 @@ body {
     gap: 10px;
     width: calc(100% - 32px);
     position: fixed;
-    bottom: calc(var(--nav-height) + 14px);
+    bottom: calc(var(--nav-height) + var(--categories-height) + 10px);
     left: 16px;
     right: 16px;
     padding: 16px;

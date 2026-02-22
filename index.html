@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=2">
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
@@ -44,7 +44,12 @@
             </div>
         </div>
 
-
+        <!-- STICKY: Категории + метка обновления -->
+        <div class="sticky-bar">
+            <div class="categories-bar">
+            </div>
+            <div id="last-update" class="last-update"></div>
+        </div>
 
         <!-- Загрузка -->
         <div id="loading-banner" class="loading-banner" style="display:none;">
@@ -79,7 +84,10 @@
 
         <!-- Текстовый блок заказа -->
         <div id="cart-summary" class="cart-summary" style="display:none;">
-            <div class="summary-label">Ваш заказ:</div>
+            <div class="summary-head">
+                <div class="summary-label">Ваш заказ:</div>
+                <button id="copy-cart-btn" class="copy-btn" type="button">Копировать</button>
+            </div>
             <pre id="cart-text" class="cart-text"></pre>
             <div class="cart-total-row">
                 <span>Итого:</span>
@@ -95,13 +103,6 @@
             </svg>
             Отправить заказ в WhatsApp
         </a>
-    </div>
-
-    <!-- STICKY: Категории (теперь внизу) -->
-    <div class="sticky-bar bottom">
-        <div class="categories-bar">
-            <button class="cat-chip active" data-category="all">Все</button>
-        </div>
     </div>
 
     <!-- ===== НИЖНЯЯ НАВИГАЦИЯ ===== -->
@@ -124,7 +125,7 @@
         </button>
     </nav>
 
-    <script src="app.js?v=2"></script>
+    <script src="app.js"></script>
 </body>
 
 </html>

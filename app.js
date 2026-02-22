@@ -1,10 +1,3 @@
-// ===== НАСТРОЙКИ =====
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRkeFxdnYccFA7PFOXn5EJXfINDocaG3OmfIgD29lt8Y18qZDKbuYjaBA4Mg7U9qwTcN2CvIEYNIY7P/pub?output=csv";
-const WA_PHONE = "77780878211";
-const CACHE_KEY = "globalshop_products";
-const CACHE_TIME_KEY = "globalshop_cache_time";
-const REFRESH_INTERVAL_MS = 300000; // 5 минут
-
 // ===== ВСТРОЕННЫЕ ДАННЫЕ (резервные, если Google Sheets недоступен) =====
 const FALLBACK_PRODUCTS = [
     // Зелень и Грибы
@@ -111,11 +104,26 @@ const FALLBACK_PRODUCTS = [
     { id: 99, name: "Смородина замороженная (кг)", category: "Ягоды", price: 5990, sale: false },
 ];
 
+// ===== КОНФИГ =====
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRkeFxdnYccFA7PFOXn5EJXfINDocaG3OmfIgD29lt8Y18qZDKbuYjaBA4Mg7U9qwTcN2CvIEYNIY7P/pub?output=csv";
+const WA_PHONE = "77780878211";
+const CACHE_KEY = "globalshop_products";
+const CACHE_TIME_KEY = "globalshop_products_ts";
+const REFRESH_INTERVAL_MS = 3600000; // 1 час
+const CATEGORY_CLONES_COUNT = 2;
+const CATEGORY_DRAG_THRESHOLD = 10;
+
 // ===== СОСТОЯНИЕ =====
 let PRODUCTS = [...FALLBACK_PRODUCTS]; // сразу зашиты данные, fetch только обновит цены
 
 let cart = {};
-let activeCategory = "all";
+let activeCategory = null; // Будет установлена при загрузке данных
+let categoriesScrollInitialized = false;
+let categoriesPointerDown = false;
+let categoriesStartedDragging = false;
+let ignoreNextCategoryClick = false;
+let categoryStartX = 0;
+let categoryStartY = 0;
 
 // ===== ЭМОДЗИ ДЛЯ КАТЕГОРИЙ =====
 const CATEGORY_EMOJIS = {
@@ -168,6 +176,7 @@ const $cartText = document.getElementById("cart-text");
 const $cartTotalPrice = document.getElementById("cart-total-price");
 const $cartBadge = document.getElementById("cart-badge");
 const $whatsappBtn = document.getElementById("whatsapp-btn");
+const $copyCartBtn = document.getElementById("copy-cart-btn");
 const $clearCartBtn = document.getElementById("clear-cart-btn");
 const $loadingBanner = document.getElementById("loading-banner");
 const $lastUpdateEl = document.getElementById("last-update");
@@ -195,7 +204,6 @@ function parseCSV(csvText) {
     const catIdx = headers.findIndex(h => h.includes("категор"));
     const priceIdx = headers.findIndex(h => h.includes("цена"));
     const saleIdx = headers.findIndex(h => h.includes("акц"));
-    const stockIdx = headers.findIndex(h => h.includes("доступн") || h.includes("stock"));
 
     const products = [];
     for (let i = 1; i < lines.length; i++) {
@@ -207,7 +215,6 @@ function parseCSV(csvText) {
         const category = (cols[catIdx] || "").trim();
         const priceRaw = (cols[priceIdx] || "").trim().replace(/[^\d.]/g, "");
         const saleRaw = saleIdx >= 0 ? (cols[saleIdx] || "").trim().toLowerCase() : "no";
-        const stockRaw = stockIdx >= 0 ? (cols[stockIdx] || "").trim().toLowerCase() : "in stock";
 
         if (!name || !category || !priceRaw) continue;
 
@@ -217,7 +224,6 @@ function parseCSV(csvText) {
             category,
             price: parseInt(priceRaw, 10) || 0,
             sale: saleRaw === "yes",
-            inStock: !stockRaw.includes("out"),
         });
     }
     return products;
@@ -244,9 +250,6 @@ function parseCSVLine(line) {
 
 // ===== ЗАГРУЗКА ИЗ GOOGLE SHEETS (только фоновое обновление) =====
 async function fetchProductsFromSheets() {
-    // Если URL не задан — работаем на встроенных данных
-    if (!SHEET_CSV_URL) return false;
-
     // Проверяем кеш через localStorage
     try {
         const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
@@ -315,22 +318,47 @@ function hasSaleProducts() {
 
 // ===== РЕНДЕР КАТЕГОРИЙ-ЧИПСОВ =====
 function renderCategoryChips() {
-    // Убираем всё кроме чипа "Все"
-    const existingChips = $categoriesBar.querySelectorAll(".cat-chip:not([data-category='all'])");
+    const existingChips = $categoriesBar.querySelectorAll(".cat-chip");
     existingChips.forEach(c => c.remove());
 
     const cats = getCategories();
+    const finalCats = [];
 
     // Сначала "Акция" если есть товары со скидкой
     if (hasSaleProducts()) {
-        const saleChip = makeChip("sale", "🔥 Акция");
-        $categoriesBar.appendChild(saleChip);
+        finalCats.push({ id: "sale", label: "🔥 Акции" });
     }
 
     cats.forEach(cat => {
-        const chip = makeChip(cat, (CATEGORY_EMOJIS[cat] || "📦") + " " + cat);
+        finalCats.push({ id: cat, label: (CATEGORY_EMOJIS[cat] || "📦") + " " + cat });
+    });
+
+    if (!activeCategory && finalCats.length > 0) {
+        activeCategory = finalCats[0].id;
+    }
+
+    // Рендерим чипсы для бесконечного скролла (клонируем в начале и конце)
+    // Структура: [Последние 2] [Все категории] [Первые 2]
+    const clonesCount = CATEGORY_CLONES_COUNT;
+    const startClones = finalCats.slice(-clonesCount);
+    const endClones = finalCats.slice(0, clonesCount);
+
+    [...startClones, ...finalCats, ...endClones].forEach((catObj, index) => {
+        const chip = makeChip(catObj.id, catObj.label);
+        // Если это клон, помечаем его (хотя логика переключения будет по id)
+        if (index < clonesCount || index >= clonesCount + finalCats.length) {
+            chip.classList.add("is-clone");
+        }
         $categoriesBar.appendChild(chip);
     });
+
+    // Устанавливаем положение скролла на реальные элементы
+    setTimeout(() => {
+        const firstRealChip = $categoriesBar.querySelectorAll(".cat-chip")[clonesCount];
+        if (firstRealChip) {
+            $categoriesBar.scrollLeft = firstRealChip.offsetLeft - 16;
+        }
+    }, 10);
 
     // Восстановить активный
     syncActiveChip();
@@ -350,14 +378,86 @@ function syncActiveChip() {
     });
 }
 
+function centerActiveRealChip() {
+    const realChips = Array.from($categoriesBar.querySelectorAll(".cat-chip:not(.is-clone)"));
+    const target = realChips.find(chip => chip.dataset.category === activeCategory);
+    if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }
+}
+
 $categoriesBar.addEventListener("click", (e) => {
     const chip = e.target.closest(".cat-chip");
     if (!chip) return;
+    if (ignoreNextCategoryClick || categoriesStartedDragging) return;
+
     activeCategory = chip.dataset.category;
     syncActiveChip();
     renderProducts();
-    $productsList.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Плавный скролл к началу списка (так как список теперь над категориями, 
+    // но визуально категории внизу - прокручиваем окно вверх)
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    // Центрируем реальный чип (а не его клон)
+    centerActiveRealChip();
 });
+
+function setupInfiniteScroll() {
+    if (categoriesScrollInitialized) return;
+    categoriesScrollInitialized = true;
+
+    $categoriesBar.addEventListener("scroll", () => {
+        const chips = Array.from($categoriesBar.querySelectorAll(".cat-chip"));
+        const realCount = chips.length - CATEGORY_CLONES_COUNT * 2;
+        if (realCount <= 0) return;
+
+        const scrollLeft = $categoriesBar.scrollLeft;
+        const scrollWidth = $categoriesBar.scrollWidth;
+        const width = $categoriesBar.offsetWidth;
+
+        // Если слишком близко к левому краю (в зоне левых клонов)
+        if (scrollLeft < 10) {
+            const lastRealChip = chips[chips.length - CATEGORY_CLONES_COUNT - 1];
+            $categoriesBar.scrollLeft = lastRealChip.offsetLeft - 8;
+        }
+        // Если слишком близко к правому краю (в зоне правых клонов)
+        else if (scrollLeft + width > scrollWidth - 10) {
+            const firstRealChip = chips[CATEGORY_CLONES_COUNT];
+            $categoriesBar.scrollLeft = firstRealChip.offsetLeft - 8;
+        }
+    });
+}
+
+function setupCategoryPointerGuards() {
+    $categoriesBar.addEventListener("pointerdown", (e) => {
+        categoriesPointerDown = true;
+        categoriesStartedDragging = false;
+        categoryStartX = e.clientX;
+        categoryStartY = e.clientY;
+    });
+
+    $categoriesBar.addEventListener("pointermove", (e) => {
+        if (!categoriesPointerDown) return;
+        const dx = Math.abs(e.clientX - categoryStartX);
+        const dy = Math.abs(e.clientY - categoryStartY);
+        if (dx > CATEGORY_DRAG_THRESHOLD || dy > CATEGORY_DRAG_THRESHOLD) {
+            categoriesStartedDragging = true;
+        }
+    });
+
+    const stopPointerTracking = () => {
+        if (!categoriesPointerDown) return;
+        categoriesPointerDown = false;
+        if (categoriesStartedDragging) {
+            ignoreNextCategoryClick = true;
+            setTimeout(() => { ignoreNextCategoryClick = false; }, 120);
+        }
+        setTimeout(() => { categoriesStartedDragging = false; }, 0);
+    };
+
+    window.addEventListener("pointerup", stopPointerTracking);
+    window.addEventListener("pointercancel", stopPointerTracking);
+}
 
 // ===== РЕНДЕР ТОВАРОВ =====
 function renderProducts() {
@@ -366,7 +466,7 @@ function renderProducts() {
 
     if (activeCategory === "sale") {
         filtered = filtered.filter(p => p.sale);
-    } else if (activeCategory !== "all") {
+    } else {
         filtered = filtered.filter(p => p.category === activeCategory);
     }
 
@@ -414,29 +514,22 @@ function renderProducts() {
 
 function renderProductCards(products) {
     return products.map(p => {
-        const isOut = p.inStock === false;
         const qty = cart[p.id] || 0;
         const inCart = qty > 0 ? " in-cart" : "";
         const hasValue = qty > 0 ? " has-value" : "";
-        const outClass = isOut ? " out-of-stock" : "";
-        const saleBadge = p.sale && !isOut ? `<span class="sale-badge">🔥 Акция</span>` : "";
-
-        const counterHtml = isOut
-            ? `<span class="oos-label">Нет в наличии</span>`
-            : `<div class="counter">
-                    <button class="counter-btn minus" data-id="${p.id}" data-action="minus">−</button>
-                    <span class="counter-val${hasValue}" data-id="${p.id}">${qty}</span>
-                    <button class="counter-btn plus" data-id="${p.id}" data-action="plus">+</button>
-                </div>`;
-
+        const saleBadge = p.sale ? `<span class="sale-badge">🔥 Акция</span>` : "";
         return `
-            <div class="product-card${inCart}${outClass}" data-id="${p.id}">
+            <div class="product-card${inCart}" data-id="${p.id}">
                 <div class="product-emoji">${getProductEmoji(p.name)}</div>
                 <div class="product-info">
                     <div class="product-name">${p.name} ${saleBadge}</div>
                     <div class="product-price">${formatPrice(p.price)}</div>
                 </div>
-                ${counterHtml}
+                <div class="counter">
+                    <button class="counter-btn minus" data-id="${p.id}" data-action="minus">−</button>
+                    <span class="counter-val${hasValue}" data-id="${p.id}">${qty}</span>
+                    <button class="counter-btn plus" data-id="${p.id}" data-action="plus">+</button>
+                </div>
             </div>
         `;
     }).join("");
@@ -499,6 +592,10 @@ function renderCart() {
         $cartEmpty.style.display = "block";
         $cartSummary.style.display = "none";
         $whatsappBtn.style.display = "none";
+        if ($copyCartBtn) {
+            $copyCartBtn.disabled = true;
+            $copyCartBtn.dataset.copyText = "";
+        }
         return;
     }
 
@@ -520,17 +617,26 @@ function renderCart() {
     $cartText.textContent = textLines.join("\n");
     $cartTotalPrice.textContent = formatPrice(totalPrice);
 
-    const waText = buildWhatsAppText(items, totalPrice);
+    const waText = buildWhatsAppText(items);
     $whatsappBtn.href = `https://wa.me/${WA_PHONE}?text=${waText}`;
+
+    if ($copyCartBtn) {
+        $copyCartBtn.disabled = false;
+        $copyCartBtn.dataset.copyText = buildOrderText(items);
+    }
 }
 
-function buildWhatsAppText(items, totalPrice) {
+function buildOrderText(items) {
     let text = "🛒 Заказ с GlobalShop:\n\n";
     items.forEach(item => {
         text += `${item.name} × ${item.qty}\n`;
     });
-    text += `\nИтого: ${formatPrice(totalPrice)}`;
-    return encodeURIComponent(text);
+    text += "\nПосчитайте, пожалуйста, точный вес и стоимость.";
+    return text;
+}
+
+function buildWhatsAppText(items) {
+    return encodeURIComponent(buildOrderText(items));
 }
 
 // ===== ОЧИСТИТЬ КОРЗИНУ =====
@@ -543,6 +649,37 @@ $clearCartBtn.addEventListener("click", () => {
         renderProducts();
     }
 });
+
+if ($copyCartBtn) {
+    $copyCartBtn.addEventListener("click", async () => {
+        const text = $copyCartBtn.dataset.copyText || "";
+        if (!text.trim()) return;
+
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                const ta = document.createElement("textarea");
+                ta.value = text;
+                ta.setAttribute("readonly", "");
+                ta.style.position = "absolute";
+                ta.style.left = "-9999px";
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand("copy");
+                document.body.removeChild(ta);
+            }
+
+            const oldLabel = $copyCartBtn.textContent;
+            $copyCartBtn.textContent = "Скопировано";
+            setTimeout(() => {
+                $copyCartBtn.textContent = oldLabel;
+            }, 1200);
+        } catch (e) {
+            console.warn("Не удалось скопировать заказ:", e);
+        }
+    });
+}
 
 // ===== НАВИГАЦИЯ =====
 document.querySelectorAll(".nav-btn").forEach(btn => {
@@ -563,9 +700,6 @@ $searchInput.addEventListener("input", () => {
     searchTimeout = setTimeout(renderProducts, 200);
 });
 
-
-
-// ===== АВТО-ОБНОВЛЕНИЕ РАЗ В ЧАС =====
 function scheduleAutoRefresh() {
     setInterval(async () => {
         console.log("[GlobalShop] Авто-обновление данных...");
@@ -597,10 +731,23 @@ function init() {
     // 3. Планируем авто-обновление каждый час
     scheduleAutoRefresh();
 
-    // 4. Удален IntersectionObserver (sticky-бар теперь снизу статичен)
+    // 4. Тень sticky-бара при прилипании
+    const stickyBar = document.querySelector(".sticky-bar");
+    if (stickyBar && "IntersectionObserver" in window) {
+        const sentinel = document.createElement("div");
+        sentinel.style.cssText = "position:absolute;top:0;height:1px;pointer-events:none";
+        stickyBar.parentElement.insertBefore(sentinel, stickyBar);
+        new IntersectionObserver(
+            ([entry]) => stickyBar.classList.toggle("is-stuck", !entry.isIntersecting),
+            { threshold: 1.0 }
+        ).observe(sentinel);
+    }
 
+    // 5. Бесконечный скролл по кругу + защита от ложного клика при прокрутке
+    setupInfiniteScroll();
+    setupCategoryPointerGuards();
 
-    // 5. Свайп для переключения категорий
+    // 6. Свайп для переключения категорий
     initSwipe();
 }
 
@@ -615,6 +762,13 @@ function initSwipe() {
 
     document.addEventListener("touchstart", (e) => {
         if (e.touches.length !== 1) return;
+
+        // Свайп по бару категорий обрабатывается как прокрутка самого бара, а не смена категории
+        if (e.target.closest(".categories-bar")) {
+            tracking = false;
+            return;
+        }
+
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
         tracking = true;
@@ -635,8 +789,8 @@ function initSwipe() {
         const catalogScreen = document.getElementById("catalog-screen");
         if (!catalogScreen.classList.contains("active")) return;
 
-        // Собираем текущие чипсы в порядке DOM
-        const chips = Array.from($categoriesBar.querySelectorAll(".cat-chip"));
+        // Собираем только реальные чипсы для расчёта индекса
+        const chips = Array.from($categoriesBar.querySelectorAll(".cat-chip:not(.is-clone)"));
         if (chips.length === 0) return;
 
         const currentIdx = chips.findIndex(c => c.dataset.category === activeCategory);
@@ -656,16 +810,11 @@ function initSwipe() {
         syncActiveChip();
         renderProducts();
 
-        // Прокручиваем выбранный чип в центр плавно
-        const containerWidth = $categoriesBar.offsetWidth;
-        const chipOffset = nextChip.offsetLeft;
-        const chipWidth = nextChip.offsetWidth;
-        const scrollAmount = chipOffset - (containerWidth / 2) + (chipWidth / 2);
+        // Прокручиваем окно вверх к началу списка
+        window.scrollTo({ top: 0, behavior: "smooth" });
 
-        $categoriesBar.scrollTo({
-            left: scrollAmount,
-            behavior: "smooth"
-        });
+        // Центрируем выбранный чип
+        nextChip.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
 
     }, { passive: true });
 
