@@ -46,6 +46,37 @@ const $clearCartBtn = document.getElementById("clear-cart-btn");
 const $loadingBanner = document.getElementById("loading-banner");
 const $lastUpdateEl = document.getElementById("last-update");
 
+function getQuantityStep(product) {
+    return getProductUnit(product) === UNIT_KG ? 0.5 : 1;
+}
+
+function roundQty(value) {
+    return Math.round(Number(value || 0) * 10) / 10;
+}
+
+function formatQty(qty) {
+    const value = roundQty(qty);
+    if (Number.isInteger(value)) return String(value);
+    return value.toFixed(1);
+}
+
+function hasPieceUnitInName(name) {
+    return /\(\s*шт\s*\)|\bшт\b/i.test(String(name || ""));
+}
+
+function getDisplayProductName(product) {
+    const baseName = String(product?.name || "").trim();
+    if (!baseName) return "";
+    if (getProductUnit(product) === UNIT_PC && !hasPieceUnitInName(baseName)) {
+        return `${baseName} (${UNIT_PC})`;
+    }
+    return baseName;
+}
+
+function formatQtyWithUnit(product, qty) {
+    return `${formatQty(qty)} ${getProductUnit(product)}`;
+}
+
 // ===== РЈРўРР›РРўР« =====
 const LOG_PREFIX = "[ГлобалШоп]";
 const logInfo = (...args) => console.log(LOG_PREFIX, ...args);
@@ -502,13 +533,13 @@ function renderProductCards(products) {
             <div class="product-card${inCart}" data-id="${p.id}">
                 <div class="product-emoji">${getProductEmoji(p.name, p.emoji)}</div>
                 <div class="product-info">
-                    <div class="product-name">${p.name} ${saleBadge}</div>
+                    <div class="product-name">${getDisplayProductName(p)} ${saleBadge}</div>
                     <div class="product-price">${formatPrice(p.price)}</div>
                 </div>
                 <div class="counter">
                     <button class="counter-btn minus" data-id="${p.id}" data-action="minus">&#8722;</button>
                     <div class="counter-value-wrap">
-                        <span class="counter-val${hasValue}" data-id="${p.id}">${qty}</span>
+                        <span class="counter-val${hasValue}" data-id="${p.id}">${formatQty(qty)}</span>
                         <span class="counter-unit">${unit}</span>
                     </div>
                     <button class="counter-btn plus${plusActive}" data-id="${p.id}" data-action="plus">+</button>
@@ -534,7 +565,7 @@ $productsList.addEventListener("click", (e) => {
         const valSpan = card.querySelector(".counter-val");
         const plusBtn = card.querySelector(".counter-btn.plus");
         if (valSpan) {
-            valSpan.textContent = qty;
+            valSpan.textContent = formatQty(qty);
             valSpan.classList.toggle("has-value", qty > 0);
         }
         card.classList.toggle("in-cart", qty > 0);
@@ -558,15 +589,17 @@ function updateCartBadge() {
 
 function changeCartItemQuantity(id, action) {
     if (!Number.isFinite(id) || id <= 0) return 0;
+    const product = PRODUCTS_BY_ID.get(Number(id));
+    const step = getQuantityStep(product);
     if (action === "plus") {
-        cart[id] = (cart[id] || 0) + 1;
+        cart[id] = roundQty((cart[id] || 0) + step);
     } else if (action === "minus") {
         if (cart[id] && cart[id] > 0) {
-            cart[id]--;
-            if (cart[id] === 0) delete cart[id];
+            cart[id] = roundQty((cart[id] || 0) - step);
+            if (cart[id] <= 0) delete cart[id];
         }
     }
-    return cart[id] || 0;
+    return roundQty(cart[id] || 0);
 }
 
 function clearCartState() {
@@ -606,13 +639,13 @@ function renderCart() {
     $cartItems.innerHTML = items.map(item => `
         <div class="cart-item">
             <div class="cart-item-info">
-                <span class="cart-item-name">${getProductEmoji(item.name, item.emoji)} ${item.name}</span>
+                <span class="cart-item-name">${getProductEmoji(item.name, item.emoji)} ${getDisplayProductName(item)}</span>
                 <span class="cart-item-price">${formatPrice(item.price * item.qty)}</span>
             </div>
             <div class="counter cart-item-counter">
                 <button class="counter-btn minus cart-counter-btn" data-id="${item.id}" data-action="minus">&#8722;</button>
                 <div class="counter-value-wrap">
-                    <span class="counter-val has-value">${item.qty}</span>
+                    <span class="counter-val has-value">${formatQty(item.qty)}</span>
                     <span class="counter-unit">${getProductUnit(item)}</span>
                 </div>
                 <button class="counter-btn plus is-active cart-counter-btn" data-id="${item.id}" data-action="plus">+</button>
@@ -620,11 +653,11 @@ function renderCart() {
         </div>
     `).join("");
 
-    const textLines = items.map(item => `${item.name} x ${item.qty}`);
+    const textLines = items.map(item => `${getDisplayProductName(item)} x ${formatQtyWithUnit(item, item.qty)}`);
     const totalPrice = items.reduce((s, item) => s + item.price * item.qty, 0);
 
     $cartText.textContent = textLines.join("\n");
-    $cartTotalPrice.textContent = formatPrice(totalPrice);
+    $cartTotalPrice.textContent = `~ ${formatPrice(totalPrice)}`;
 
     const waText = buildWhatsAppText(items);
     $whatsappBtn.href = `https://wa.me/${WA_PHONE}?text=${waText}`;
@@ -636,11 +669,11 @@ function renderCart() {
 }
 
 function buildOrderText(items) {
-    let text = "🛒 Заказ с GlobalShop:\n\n";
+    let text = "🛒 Заказ с GlobalFruit.kz:\n\n";
     items.forEach(item => {
-        text += `${item.name} x ${item.qty}\n`;
+        text += `${getDisplayProductName(item)} x ${formatQtyWithUnit(item, item.qty)}\n`;
     });
-    text += "\nПосчитайте, пожалуйста, точный вес и стоимость.";
+    text += '\nИтоговая стоимость будет рассчитана на весах, нажмите "отправить" - мы взвесим и посчитаем.';
     return text;
 }
 

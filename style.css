@@ -177,7 +177,7 @@ body {
 }
 
 .banner-copy {
-    margin-left: -42px;
+    margin-left: -26px;
 }
 
 .banner-emoji {
@@ -194,6 +194,10 @@ body {
     font-size: 13px;
     opacity: 0.9;
     margin-top: 2px;
+}
+
+.banner-text + .banner-text {
+    margin-top: 8px;
 }
 
 /* ===== ФИКСИРОВАННЫЕ БАРЫ КАТЕГОРИЙ (ВЕРХ/НИЗ) ===== */
@@ -677,6 +681,13 @@ body {
 .cart-total-price {
     color: var(--green);
     font-size: 20px;
+}
+
+.cart-total-note {
+    margin-top: 10px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-secondary);
 }
 
 /* ===== КНОПКА WhatsApp ===== */
