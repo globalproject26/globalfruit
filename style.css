@@ -40,7 +40,7 @@ body {
     color: var(--text);
     min-height: 100dvh;
     overflow-x: hidden;
-    padding-bottom: calc(var(--nav-height) + 10px);
+    padding-bottom: calc(var(--nav-height) + 60px);
 }
 
 /* ===== ЭКРАНЫ ===== */
@@ -189,18 +189,19 @@ body {
 
 /* ===== STICKY-БАР (категории + время обновления) ===== */
 .sticky-bar {
-    position: sticky;
-    top: 0;
+    position: fixed;
+    bottom: var(--nav-height);
+    left: 0;
+    right: 0;
     z-index: 150;
     background: var(--bg);
-    padding: 10px 0 0;
-    /* Тонкая тень снизу когда прилипает */
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0);
-    transition: box-shadow 0.2s;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+    transition: transform 0.3s;
 }
 
-.sticky-bar.is-stuck {
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+.sticky-bar.bottom {
+    bottom: var(--nav-height);
 }
 
 /* ===== КАТЕГОРИИ (чипсы) ===== */

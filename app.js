@@ -597,17 +597,8 @@ function init() {
     // 3. Планируем авто-обновление каждый час
     scheduleAutoRefresh();
 
-    // 4. Тень sticky-бара при прилипании
-    const stickyBar = document.querySelector(".sticky-bar");
-    if (stickyBar && "IntersectionObserver" in window) {
-        const sentinel = document.createElement("div");
-        sentinel.style.cssText = "position:absolute;top:0;height:1px;pointer-events:none";
-        stickyBar.parentElement.insertBefore(sentinel, stickyBar);
-        new IntersectionObserver(
-            ([entry]) => stickyBar.classList.toggle("is-stuck", !entry.isIntersecting),
-            { threshold: 1.0 }
-        ).observe(sentinel);
-    }
+    // 4. Удален IntersectionObserver (sticky-бар теперь снизу статичен)
+
 
     // 5. Свайп для переключения категорий
     initSwipe();
@@ -665,8 +656,16 @@ function initSwipe() {
         syncActiveChip();
         renderProducts();
 
-        // Прокручиваем выбранный чип в зону видимости
-        nextChip.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+        // Прокручиваем выбранный чип в центр плавно
+        const containerWidth = $categoriesBar.offsetWidth;
+        const chipOffset = nextChip.offsetLeft;
+        const chipWidth = nextChip.offsetWidth;
+        const scrollAmount = chipOffset - (containerWidth / 2) + (chipWidth / 2);
+
+        $categoriesBar.scrollTo({
+            left: scrollAmount,
+            behavior: "smooth"
+        });
 
     }, { passive: true });
 
