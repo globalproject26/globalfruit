@@ -397,6 +397,24 @@ body {
     white-space: nowrap;
 }
 
+/* ===== OUT OF STOCK ===== */
+.product-card.out-of-stock {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.product-card.out-of-stock .product-emoji {
+    filter: grayscale(1);
+}
+
+.oos-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #999;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
 /* ===== СЧЁТЧИК ===== */
 .counter {
     display: flex;

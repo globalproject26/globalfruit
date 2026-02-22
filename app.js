@@ -3,7 +3,7 @@ const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRkeFxdnY
 const WA_PHONE = "77780878211";
 const CACHE_KEY = "globalshop_products";
 const CACHE_TIME_KEY = "globalshop_cache_time";
-const REFRESH_INTERVAL_MS = 3600000; // 1 час
+const REFRESH_INTERVAL_MS = 300000; // 5 минут
 
 // ===== ВСТРОЕННЫЕ ДАННЫЕ (резервные, если Google Sheets недоступен) =====
 const FALLBACK_PRODUCTS = [
@@ -195,6 +195,7 @@ function parseCSV(csvText) {
     const catIdx = headers.findIndex(h => h.includes("категор"));
     const priceIdx = headers.findIndex(h => h.includes("цена"));
     const saleIdx = headers.findIndex(h => h.includes("акц"));
+    const stockIdx = headers.findIndex(h => h.includes("доступн") || h.includes("stock"));
 
     const products = [];
     for (let i = 1; i < lines.length; i++) {
@@ -206,6 +207,7 @@ function parseCSV(csvText) {
         const category = (cols[catIdx] || "").trim();
         const priceRaw = (cols[priceIdx] || "").trim().replace(/[^\d.]/g, "");
         const saleRaw = saleIdx >= 0 ? (cols[saleIdx] || "").trim().toLowerCase() : "no";
+        const stockRaw = stockIdx >= 0 ? (cols[stockIdx] || "").trim().toLowerCase() : "in stock";
 
         if (!name || !category || !priceRaw) continue;
 
@@ -215,6 +217,7 @@ function parseCSV(csvText) {
             category,
             price: parseInt(priceRaw, 10) || 0,
             sale: saleRaw === "yes",
+            inStock: !stockRaw.includes("out"),
         });
     }
     return products;
@@ -411,22 +414,29 @@ function renderProducts() {
 
 function renderProductCards(products) {
     return products.map(p => {
+        const isOut = p.inStock === false;
         const qty = cart[p.id] || 0;
         const inCart = qty > 0 ? " in-cart" : "";
         const hasValue = qty > 0 ? " has-value" : "";
-        const saleBadge = p.sale ? `<span class="sale-badge">🔥 Акция</span>` : "";
+        const outClass = isOut ? " out-of-stock" : "";
+        const saleBadge = p.sale && !isOut ? `<span class="sale-badge">🔥 Акция</span>` : "";
+
+        const counterHtml = isOut
+            ? `<span class="oos-label">Нет в наличии</span>`
+            : `<div class="counter">
+                    <button class="counter-btn minus" data-id="${p.id}" data-action="minus">−</button>
+                    <span class="counter-val${hasValue}" data-id="${p.id}">${qty}</span>
+                    <button class="counter-btn plus" data-id="${p.id}" data-action="plus">+</button>
+                </div>`;
+
         return `
-            <div class="product-card${inCart}" data-id="${p.id}">
+            <div class="product-card${inCart}${outClass}" data-id="${p.id}">
                 <div class="product-emoji">${getProductEmoji(p.name)}</div>
                 <div class="product-info">
                     <div class="product-name">${p.name} ${saleBadge}</div>
                     <div class="product-price">${formatPrice(p.price)}</div>
                 </div>
-                <div class="counter">
-                    <button class="counter-btn minus" data-id="${p.id}" data-action="minus">−</button>
-                    <span class="counter-val${hasValue}" data-id="${p.id}">${qty}</span>
-                    <button class="counter-btn plus" data-id="${p.id}" data-action="plus">+</button>
-                </div>
+                ${counterHtml}
             </div>
         `;
     }).join("");
