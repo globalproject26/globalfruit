@@ -171,9 +171,13 @@ body {
 .banner-content {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 8px;
     position: relative;
     z-index: 1;
+}
+
+.banner-copy {
+    margin-left: -2px;
 }
 
 .banner-emoji {

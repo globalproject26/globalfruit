@@ -389,8 +389,11 @@ function renderCategoryChips() {
         finalCats.push({ id: cat, label: (CATEGORY_EMOJIS[cat] || "📦") + " " + cat });
     });
 
-    if (!activeCategory && finalCats.length > 0) {
-        activeCategory = finalCats[0].id;
+    if (finalCats.length > 0) {
+        const availableIds = new Set(finalCats.map(c => c.id));
+        if (!activeCategory || !availableIds.has(activeCategory)) {
+            activeCategory = finalCats[0].id;
+        }
     }
 
     // Рендерим чипсы для бесконечного скролла (клонируем в начале и конце)
@@ -950,8 +953,8 @@ function initSwipe() {
     document.addEventListener("touchstart", (e) => {
         if (e.touches.length !== 1) return;
 
-        // Свайп по бару категорий обрабатывается как прокрутка самого бара, а не смена категории
-        if (e.target.closest(".categories-bar")) {
+        // Не переключаем категории, если жест начался на интерактивных элементах/товаре.
+        if (e.target.closest(".categories-bar, .product-card, .counter, .cart-item, .cart-items, .whatsapp-btn, button, a, input, textarea, select, label")) {
             tracking = false;
             return;
         }
@@ -982,15 +985,16 @@ function initSwipe() {
         if (chips.length === 0) return;
 
         const currentIdx = chips.findIndex(c => c.dataset.category === activeCategory);
+        const safeCurrentIdx = currentIdx >= 0 ? currentIdx : 0;
         const total = chips.length;
         let nextIdx;
 
         if (dx < 0) {
             // Свайп влево → следующая категория
-            nextIdx = (currentIdx + 1) % total;
+            nextIdx = (safeCurrentIdx + 1) % total;
         } else {
             // Свайп вправо → предыдущая категория
-            nextIdx = (currentIdx - 1 + total) % total;
+            nextIdx = (safeCurrentIdx - 1 + total) % total;
         }
 
         const nextChip = chips[nextIdx];
