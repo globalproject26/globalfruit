@@ -254,7 +254,18 @@ function updateLastUpdateDisplay(ts) {
 // ===== РџРћР›РЈР§Р•РќРР• РљРђРўР•Р“РћР РР™ =====
 function getCategories() {
     const cats = [...new Set(PRODUCTS.map(p => p.category))];
-    return cats;
+    const apples = [];
+    const rest = [];
+
+    cats.forEach((cat) => {
+        if (/яблок/i.test(String(cat))) {
+            apples.push(cat);
+            return;
+        }
+        rest.push(cat);
+    });
+
+    return [...rest, ...apples];
 }
 
 function hasSaleProducts() {
@@ -289,25 +300,10 @@ function renderCategoryChips() {
 
     // Рендерим чипсы для бесконечного скролла (клонируем в начале и конце)
     // Структура: [Последние 2] [Все категории] [Первые 2]
-    const clonesCount = CATEGORY_CLONES_COUNT;
-    const startClones = finalCats.slice(-clonesCount);
-    const endClones = finalCats.slice(0, clonesCount);
-    const source = [...startClones, ...finalCats, ...endClones];
-
     $categoriesBars.forEach(bar => {
-        source.forEach((catObj, index) => {
+        finalCats.forEach((catObj) => {
             const chip = makeChip(catObj.id, catObj.label);
-            if (index < clonesCount || index >= clonesCount + finalCats.length) {
-                chip.classList.add("is-clone");
-            }
             bar.appendChild(chip);
-        });
-    });
-
-    requestAnimationFrame(() => {
-        $categoriesBars.forEach(bar => {
-            const metrics = getCategoryTrackMetrics(bar);
-            if (metrics) bar.scrollLeft = metrics.firstRealOffset;
         });
     });
 
@@ -838,7 +834,6 @@ function init() {
 
     // 5. Бесконечный скролл по кругу + защита от ложного клика при прокрутке
     $categoriesBars.forEach(bindCategoryClick);
-    setupInfiniteScroll();
     setupCategoryPointerGuards();
 
     // 6. Свайп для переключения категорий
@@ -895,7 +890,7 @@ function initSwipe() {
 
         // Собираем только реальные чипсы для расчёта индекса
         const refBar = $categoriesBars[0];
-        const chips = refBar ? Array.from(refBar.querySelectorAll(".cat-chip:not(.is-clone)")) : [];
+        const chips = refBar ? Array.from(refBar.querySelectorAll(".cat-chip")) : [];
         if (chips.length === 0) return;
 
         const currentIdx = chips.findIndex(c => c.dataset.category === activeCategory);
@@ -905,10 +900,10 @@ function initSwipe() {
 
         if (dx < 0) {
             // Свайп влево → следующая категория
-            nextIdx = (safeCurrentIdx + 1) % total;
+            nextIdx = Math.min(safeCurrentIdx + 1, total - 1);
         } else {
             // Свайп вправо → предыдущая категория
-            nextIdx = (safeCurrentIdx - 1 + total) % total;
+            nextIdx = Math.max(safeCurrentIdx - 1, 0);
         }
 
         const nextChip = chips[nextIdx];
