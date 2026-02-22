@@ -240,11 +240,18 @@ function parseCSV(csvText) {
     if (lines.length < 2) return [];
 
     const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, "").toLowerCase());
-    const nameIdx = headers.findIndex(h => h.includes("наименован"));
-    const catIdx = headers.findIndex(h => h.includes("категор"));
-    const priceIdx = headers.findIndex(h => h.includes("цена"));
-    const saleIdx = headers.findIndex(h => h.includes("акц"));
-    const iconIdx = headers.findIndex(h => h.includes(\"????\") || h.includes(\"emoji\") || h.includes(\"?????\"));
+    const nameIdxRaw = headers.findIndex(h => h.includes("наименован"));
+    const catIdxRaw = headers.findIndex(h => h.includes("категор"));
+    const priceIdxRaw = headers.findIndex(h => h.includes("цена"));
+    const saleIdxRaw = headers.findIndex(h => h.includes("акц"));
+    const iconIdxRaw = headers.findIndex(h => h.includes("икон") || h.includes("emoji") || h.includes("эмодз"));
+
+    // Fallback to known column positions if header text is garbled by encoding.
+    const nameIdx = nameIdxRaw >= 0 ? nameIdxRaw : 1;
+    const catIdx = catIdxRaw >= 0 ? catIdxRaw : 3;
+    const priceIdx = priceIdxRaw >= 0 ? priceIdxRaw : 5;
+    const saleIdx = saleIdxRaw >= 0 ? saleIdxRaw : 6;
+    const iconIdx = iconIdxRaw >= 0 ? iconIdxRaw : 7;
 
     const products = [];
     for (let i = 1; i < lines.length; i++) {
@@ -256,7 +263,7 @@ function parseCSV(csvText) {
         const category = (cols[catIdx] || "").trim();
         const priceRaw = (cols[priceIdx] || "").trim().replace(/[^\d.]/g, "");
         const saleRaw = saleIdx >= 0 ? (cols[saleIdx] || "").trim().toLowerCase() : "no";
-        const iconRaw = iconIdx >= 0 ? (cols[iconIdx] || \"\").trim() : \"\";
+        const iconRaw = iconIdx >= 0 ? (cols[iconIdx] || "").trim() : "";
 
         if (!name || !category || !priceRaw) continue;
 
@@ -266,7 +273,7 @@ function parseCSV(csvText) {
             category,
             price: parseInt(priceRaw, 10) || 0,
             sale: saleRaw === "yes",
-            emoji: iconRaw || \"\",
+            emoji: iconRaw || "",
         });
     }
     return products;
@@ -596,7 +603,7 @@ function renderProductCards(products) {
         const saleBadge = p.sale ? `<span class="sale-badge">🔥 Акция</span>` : "";
         return `
             <div class="product-card${inCart}" data-id="${p.id}">
-                <div class=\"product-emoji\">${getProductEmoji(p.name, p.emoji)}</div>
+                <div class="product-emoji">${getProductEmoji(p.name, p.emoji)}</div>
                 <div class="product-info">
                     <div class="product-name">${p.name} ${saleBadge}</div>
                     <div class="product-price">${formatPrice(p.price)}</div>
