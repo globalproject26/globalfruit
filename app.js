@@ -1,5 +1,5 @@
 // ===== НАСТРОЙКИ =====
-const SHEET_CSV_URL = ""; // TODO: вставить URL Google Sheets (export?format=csv)
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRkeFxdnYccFA7PFOXn5EJXfINDocaG3OmfIgD29lt8Y18qZDKbuYjaBA4Mg7U9qwTcN2CvIEYNIY7P/pub?output=csv";
 const WA_PHONE = "77780878211";
 const CACHE_KEY = "globalshop_products";
 const CACHE_TIME_KEY = "globalshop_cache_time";
