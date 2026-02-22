@@ -114,6 +114,7 @@ const CATEGORY_CLONES_COUNT = 2;
 const CATEGORY_DRAG_THRESHOLD = 10;
 const CART_KEY = "globalshop_cart_v1";
 const CART_TTL_MS = 24 * 60 * 60 * 1000; // 24 часа
+const ACTIVE_SCREEN_KEY = "globalshop_active_screen";
 
 // ===== СОСТОЯНИЕ =====
 let PRODUCTS = [...FALLBACK_PRODUCTS]; // сразу зашиты данные, fetch только обновит цены
@@ -648,11 +649,11 @@ function renderCart() {
 
     $cartItems.innerHTML = items.map(item => `
         <div class="cart-item">
-            <div class="cart-item-main">
+            <div class="cart-item-info">
                 <span class="cart-item-name">${getProductEmoji(item.name)} ${item.name}</span>
-                <span class="cart-item-sum">${formatPrice(item.price * item.qty)}</span>
+                <span class="cart-item-price">${formatPrice(item.price * item.qty)}</span>
             </div>
-            <div class="counter">
+            <div class="counter cart-item-counter">
                 <button class="counter-btn minus cart-counter-btn" data-id="${item.id}" data-action="minus">−</button>
                 <span class="counter-val has-value">${item.qty}</span>
                 <button class="counter-btn plus is-active cart-counter-btn" data-id="${item.id}" data-action="plus">+</button>
@@ -753,15 +754,33 @@ if ($copyCartBtn) {
     });
 }
 
+function setActiveScreen(screenId) {
+    const valid = screenId === "catalog-screen" || screenId === "cart-screen";
+    const nextScreen = valid ? screenId : "catalog-screen";
+
+    document.querySelectorAll(".nav-btn").forEach(b => {
+        b.classList.toggle("active", b.dataset.screen === nextScreen);
+    });
+
+    document.querySelectorAll(".screen").forEach(s => {
+        s.classList.toggle("active", s.id === nextScreen);
+    });
+
+    if (nextScreen === "cart-screen") {
+        renderCart();
+    }
+
+    try {
+        localStorage.setItem(ACTIVE_SCREEN_KEY, nextScreen);
+    } catch (e) {
+        console.warn("Не удалось сохранить активный экран:", e);
+    }
+}
+
 // ===== НАВИГАЦИЯ =====
 document.querySelectorAll(".nav-btn").forEach(btn => {
     btn.addEventListener("click", () => {
-        const screenId = btn.dataset.screen;
-        document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-        document.getElementById(screenId).classList.add("active");
-        if (screenId === "cart-screen") renderCart();
+        setActiveScreen(btn.dataset.screen);
     });
 });
 
@@ -826,6 +845,13 @@ function init() {
 
     // 6. Свайп для переключения категорий
     initSwipe();
+
+    try {
+        const savedScreen = localStorage.getItem(ACTIVE_SCREEN_KEY);
+        setActiveScreen(savedScreen || "catalog-screen");
+    } catch (e) {
+        setActiveScreen("catalog-screen");
+    }
 }
 
 // ===== СВАЙП — ПЕРЕКЛЮЧЕНИЕ КАТЕГОРИЙ ПО КРУГУ =====
