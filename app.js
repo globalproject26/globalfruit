@@ -112,6 +112,8 @@ const CACHE_TIME_KEY = "globalshop_products_ts";
 const REFRESH_INTERVAL_MS = 3600000; // 1 час
 const CATEGORY_CLONES_COUNT = 2;
 const CATEGORY_DRAG_THRESHOLD = 10;
+const CART_KEY = "globalshop_cart_v1";
+const CART_TTL_MS = 24 * 60 * 60 * 1000; // 24 часа
 
 // ===== СОСТОЯНИЕ =====
 let PRODUCTS = [...FALLBACK_PRODUCTS]; // сразу зашиты данные, fetch только обновит цены
@@ -192,6 +194,43 @@ function getProductEmoji(name) {
         if (lower.includes(key)) return emoji;
     }
     return "🛒";
+}
+
+function saveCartToStorage() {
+    try {
+        localStorage.setItem(
+            CART_KEY,
+            JSON.stringify({ updatedAt: Date.now(), cart })
+        );
+    } catch (e) {
+        console.warn("Не удалось сохранить корзину:", e);
+    }
+}
+
+function loadCartFromStorage() {
+    try {
+        const raw = localStorage.getItem(CART_KEY);
+        if (!raw) return;
+
+        const parsed = JSON.parse(raw);
+        const updatedAt = Number(parsed?.updatedAt || 0);
+        const cartData = parsed?.cart && typeof parsed.cart === "object" ? parsed.cart : null;
+
+        if (!cartData) return;
+        if (!updatedAt || Date.now() - updatedAt > CART_TTL_MS) {
+            localStorage.removeItem(CART_KEY);
+            return;
+        }
+
+        const nextCart = {};
+        Object.entries(cartData).forEach(([id, qty]) => {
+            const normalizedQty = Number(qty) || 0;
+            if (normalizedQty > 0) nextCart[id] = normalizedQty;
+        });
+        cart = nextCart;
+    } catch (e) {
+        console.warn("Не удалось загрузить корзину:", e);
+    }
 }
 
 // ===== ПАРСИНГ CSV =====
@@ -461,7 +500,7 @@ function setupCategoryPointerGuards() {
 
 // ===== РЕНДЕР ТОВАРОВ =====
 function renderProducts() {
-    const query = $searchInput.value.trim().toLowerCase();
+    const query = $searchInput ? $searchInput.value.trim().toLowerCase() : "";
     let filtered = PRODUCTS;
 
     if (activeCategory === "sale") {
@@ -517,6 +556,7 @@ function renderProductCards(products) {
         const qty = cart[p.id] || 0;
         const inCart = qty > 0 ? " in-cart" : "";
         const hasValue = qty > 0 ? " has-value" : "";
+        const plusActive = qty > 0 ? " is-active" : "";
         const saleBadge = p.sale ? `<span class="sale-badge">🔥 Акция</span>` : "";
         return `
             <div class="product-card${inCart}" data-id="${p.id}">
@@ -528,7 +568,7 @@ function renderProductCards(products) {
                 <div class="counter">
                     <button class="counter-btn minus" data-id="${p.id}" data-action="minus">−</button>
                     <span class="counter-val${hasValue}" data-id="${p.id}">${qty}</span>
-                    <button class="counter-btn plus" data-id="${p.id}" data-action="plus">+</button>
+                    <button class="counter-btn plus${plusActive}" data-id="${p.id}" data-action="plus">+</button>
                 </div>
             </div>
         `;
@@ -557,13 +597,16 @@ $productsList.addEventListener("click", (e) => {
     const card = btn.closest(".product-card");
     if (card) {
         const valSpan = card.querySelector(".counter-val");
+        const plusBtn = card.querySelector(".counter-btn.plus");
         const qty = cart[id] || 0;
         valSpan.textContent = qty;
         valSpan.classList.toggle("has-value", qty > 0);
         card.classList.toggle("in-cart", qty > 0);
+        if (plusBtn) plusBtn.classList.toggle("is-active", qty > 0);
     }
 
     updateCartBadge();
+    saveCartToStorage();
 });
 
 // ===== БЕЙДЖ КОРЗИНЫ =====
@@ -605,9 +648,15 @@ function renderCart() {
 
     $cartItems.innerHTML = items.map(item => `
         <div class="cart-item">
-            <span class="cart-item-name">${getProductEmoji(item.name)} ${item.name}</span>
-            <span class="cart-item-qty">×${item.qty}</span>
-            <span class="cart-item-sum">${formatPrice(item.price * item.qty)}</span>
+            <div class="cart-item-main">
+                <span class="cart-item-name">${getProductEmoji(item.name)} ${item.name}</span>
+                <span class="cart-item-sum">${formatPrice(item.price * item.qty)}</span>
+            </div>
+            <div class="counter">
+                <button class="counter-btn minus cart-counter-btn" data-id="${item.id}" data-action="minus">−</button>
+                <span class="counter-val has-value">${item.qty}</span>
+                <button class="counter-btn plus is-active cart-counter-btn" data-id="${item.id}" data-action="plus">+</button>
+            </div>
         </div>
     `).join("");
 
@@ -644,10 +693,33 @@ $clearCartBtn.addEventListener("click", () => {
     if (Object.keys(cart).length === 0) return;
     if (confirm("Очистить корзину?")) {
         Object.keys(cart).forEach(k => delete cart[k]);
+        saveCartToStorage();
         updateCartBadge();
         renderCart();
         renderProducts();
     }
+});
+
+$cartItems.addEventListener("click", (e) => {
+    const btn = e.target.closest(".cart-counter-btn");
+    if (!btn) return;
+
+    const id = Number(btn.dataset.id);
+    const action = btn.dataset.action;
+
+    if (action === "plus") {
+        cart[id] = (cart[id] || 0) + 1;
+    } else if (action === "minus") {
+        if (cart[id] && cart[id] > 0) {
+            cart[id]--;
+            if (cart[id] === 0) delete cart[id];
+        }
+    }
+
+    saveCartToStorage();
+    updateCartBadge();
+    renderCart();
+    renderProducts();
 });
 
 if ($copyCartBtn) {
@@ -695,10 +767,12 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
 
 // ===== ПОИСК =====
 let searchTimeout;
-$searchInput.addEventListener("input", () => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(renderProducts, 200);
-});
+if ($searchInput) {
+    $searchInput.addEventListener("input", () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(renderProducts, 200);
+    });
+}
 
 function scheduleAutoRefresh() {
     setInterval(async () => {
@@ -716,6 +790,9 @@ function scheduleAutoRefresh() {
 
 // ===== ИНИЦИАЛИЗАЦИЯ =====
 function init() {
+    loadCartFromStorage();
+    updateCartBadge();
+
     // 1. Мгновенно показываем каталог из встроенных данных
     renderCategoryChips();
     renderProducts();

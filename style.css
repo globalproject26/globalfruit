@@ -341,7 +341,7 @@ body {
 
 /* ===== СПИСОК ТОВАРОВ ===== */
 .products-list {
-    padding: 8px 16px;
+    padding: 12px 16px 8px;
 }
 
 /* ===== КАРТОЧКА ТОВАРА ===== */
@@ -458,6 +458,14 @@ body {
     background: var(--green-dark);
 }
 
+.counter-btn.plus.is-active {
+    background: #4e8ef7;
+}
+
+.counter-btn.plus.is-active:hover {
+    background: #3f7be2;
+}
+
 .counter-val {
     width: 32px;
     text-align: center;
@@ -529,12 +537,20 @@ body {
 
 .cart-item {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
     background: var(--white);
     border-radius: var(--radius-sm);
     padding: 14px 16px;
     box-shadow: var(--shadow);
+}
+
+.cart-item-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
 
 .cart-item-name {
@@ -547,14 +563,6 @@ body {
     white-space: nowrap;
 }
 
-.cart-item-qty {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--green);
-    margin-left: 8px;
-    flex-shrink: 0;
-}
-
 .cart-item-sum {
     font-size: 14px;
     font-weight: 600;
@@ -565,7 +573,7 @@ body {
 
 /* ===== БЛОК ЗАКАЗА (текст) ===== */
 .cart-summary {
-    margin: 16px 16px calc(var(--nav-height) + var(--categories-height) + 74px);
+    margin: 16px 16px 100px;
     background: var(--white);
     border-radius: var(--radius);
     padding: 16px;
@@ -650,7 +658,7 @@ body {
     gap: 10px;
     width: calc(100% - 32px);
     position: fixed;
-    bottom: calc(var(--nav-height) + var(--categories-height) + 10px);
+    bottom: calc(var(--nav-height) + 14px);
     left: 16px;
     right: 16px;
     padding: 16px;
