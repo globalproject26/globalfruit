@@ -673,7 +673,7 @@ function buildOrderText(items) {
     items.forEach(item => {
         text += `${getDisplayProductName(item)} x ${formatQtyWithUnit(item, item.qty)}\n`;
     });
-    text += '\nИтоговая стоимость будет рассчитана на весах, нажмите "отправить" - мы взвесим и посчитаем.';
+    text += "\nПосчитайте итоговую стоимость, пожалуйста.";
     return text;
 }
 
