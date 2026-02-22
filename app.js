@@ -109,7 +109,7 @@ const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRkeFxdnY
 const WA_PHONE = "77780878211";
 const CACHE_KEY = "globalshop_products";
 const CACHE_TIME_KEY = "globalshop_products_ts";
-const REFRESH_INTERVAL_MS = 3600000; // 1 час
+const REFRESH_INTERVAL_MS = 600000; // 10 минут
 const CATEGORY_CLONES_COUNT = 2;
 const CATEGORY_DRAG_THRESHOLD = 10;
 const CART_KEY = "globalshop_cart_v1";
@@ -188,12 +188,13 @@ function formatPrice(price) {
     return price.toLocaleString("ru-KZ") + " ₸";
 }
 
-function getProductEmoji(name) {
+function getProductEmoji(name, explicitEmoji) {
+    if (explicitEmoji && String(explicitEmoji).trim()) return String(explicitEmoji).trim();
     const lower = name.toLowerCase();
     for (const [key, emoji] of Object.entries(PRODUCT_EMOJIS)) {
         if (lower.includes(key)) return emoji;
     }
-    return "🛒";
+    return "??";
 }
 
 function saveCartToStorage() {
@@ -243,6 +244,7 @@ function parseCSV(csvText) {
     const catIdx = headers.findIndex(h => h.includes("категор"));
     const priceIdx = headers.findIndex(h => h.includes("цена"));
     const saleIdx = headers.findIndex(h => h.includes("акц"));
+    const iconIdx = headers.findIndex(h => h.includes(\"????\") || h.includes(\"emoji\") || h.includes(\"?????\"));
 
     const products = [];
     for (let i = 1; i < lines.length; i++) {
@@ -254,6 +256,7 @@ function parseCSV(csvText) {
         const category = (cols[catIdx] || "").trim();
         const priceRaw = (cols[priceIdx] || "").trim().replace(/[^\d.]/g, "");
         const saleRaw = saleIdx >= 0 ? (cols[saleIdx] || "").trim().toLowerCase() : "no";
+        const iconRaw = iconIdx >= 0 ? (cols[iconIdx] || \"\").trim() : \"\";
 
         if (!name || !category || !priceRaw) continue;
 
@@ -263,6 +266,7 @@ function parseCSV(csvText) {
             category,
             price: parseInt(priceRaw, 10) || 0,
             sale: saleRaw === "yes",
+            emoji: iconRaw || \"\",
         });
     }
     return products;
@@ -592,7 +596,7 @@ function renderProductCards(products) {
         const saleBadge = p.sale ? `<span class="sale-badge">🔥 Акция</span>` : "";
         return `
             <div class="product-card${inCart}" data-id="${p.id}">
-                <div class="product-emoji">${getProductEmoji(p.name)}</div>
+                <div class=\"product-emoji\">${getProductEmoji(p.name, p.emoji)}</div>
                 <div class="product-info">
                     <div class="product-name">${p.name} ${saleBadge}</div>
                     <div class="product-price">${formatPrice(p.price)}</div>
@@ -681,7 +685,7 @@ function renderCart() {
     $cartItems.innerHTML = items.map(item => `
         <div class="cart-item">
             <div class="cart-item-info">
-                <span class="cart-item-name">${getProductEmoji(item.name)} ${item.name}</span>
+                <span class="cart-item-name">${getProductEmoji(item.name, item.emoji)} ${item.name}</span>
                 <span class="cart-item-price">${formatPrice(item.price * item.qty)}</span>
             </div>
             <div class="counter cart-item-counter">
