@@ -41,7 +41,7 @@ body {
     color: var(--text);
     min-height: 100dvh;
     overflow-x: hidden;
-    padding-bottom: calc(var(--nav-height) + var(--categories-height) + 18px);
+    padding-bottom: calc(var(--nav-height) + 18px);
 }
 
 /* ===== ЭКРАНЫ ===== */
@@ -206,24 +206,13 @@ body {
     position: sticky;
     top: 0;
     z-index: 170;
-    padding: 8px 0;
+    padding: 8px 0 2px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
-.sticky-bar-bottom {
-    position: fixed;
-    bottom: var(--nav-height);
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
-}
 
 /* Ограничение ширины на десктопе */
 @media (min-width: 480px) {
-    .sticky-bar-bottom {
-        max-width: 430px;
-        left: 50%;
-        transform: translateX(-50%);
-    }
-
     .sticky-bar-top {
         max-width: 430px;
         margin: 0 auto;
@@ -231,9 +220,6 @@ body {
 }
 
 /* Скрываем метку когда бар внизу, чтобы не загромождать */
-.sticky-bar .last-update {
-    display: none;
-}
 
 /* ===== КАТЕГОРИИ (чипсы) ===== */
 .categories-bar {

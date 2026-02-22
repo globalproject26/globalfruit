@@ -169,8 +169,6 @@ const $productsList = document.getElementById("products-list");
 const $emptyState = document.getElementById("empty-state");
 const $searchInput = document.getElementById("search-input");
 const $categoriesBars = Array.from(document.querySelectorAll(".categories-bar"));
-const $categoriesBarTop = document.getElementById("categories-bar-top");
-const $categoriesBarBottom = document.getElementById("categories-bar-bottom");
 const $cartItems = document.getElementById("cart-items");
 const $cartEmpty = document.getElementById("cart-empty");
 const $cartSummary = document.getElementById("cart-summary");
@@ -184,6 +182,9 @@ const $loadingBanner = document.getElementById("loading-banner");
 const $lastUpdateEl = document.getElementById("last-update");
 
 // ===== УТИЛИТЫ =====
+const LOG_PREFIX = "[ГлобалШоп]";
+const logInfo = (...args) => console.log(LOG_PREFIX, ...args);
+const logWarn = (...args) => console.warn(LOG_PREFIX, ...args);
 function formatPrice(price) {
     return price.toLocaleString("ru-KZ") + " ₸";
 }
@@ -204,7 +205,7 @@ function saveCartToStorage() {
             JSON.stringify({ updatedAt: Date.now(), cart })
         );
     } catch (e) {
-        console.warn("Не удалось сохранить корзину:", e);
+        logWarn("Не удалось сохранить корзину:", e);
     }
 }
 
@@ -230,7 +231,7 @@ function loadCartFromStorage() {
         });
         cart = nextCart;
     } catch (e) {
-        console.warn("Не удалось загрузить корзину:", e);
+        logWarn("Не удалось загрузить корзину:", e);
     }
 }
 
@@ -313,6 +314,7 @@ async function fetchProductsFromSheets() {
                     if (data.length > 0) {
                         PRODUCTS = data;
                         updateLastUpdateDisplay(parseInt(cachedTime, 10));
+                        logInfo("Данные взяты из кеша.");
                         return true;
                     }
                 }
@@ -320,11 +322,12 @@ async function fetchProductsFromSheets() {
         }
     } catch (e) {
         // localStorage может быть недоступен (file://, приватный режим) — просто продолжаем
-        console.warn("localStorage недоступен:", e);
+        logWarn("localStorage недоступен:", e);
     }
 
     // Показываем индикатор загрузки
     if ($loadingBanner) $loadingBanner.style.display = "flex";
+    logInfo("Запрос обновления данных из Google Sheets...");
 
     try {
         const resp = await fetch(SHEET_CSV_URL + "&t=" + Date.now(), { cache: "no-store" });
@@ -339,10 +342,11 @@ async function fetchProductsFromSheets() {
             localStorage.setItem(CACHE_TIME_KEY, String(Date.now()));
         } catch (e) { /* ignore */ }
         updateLastUpdateDisplay(Date.now());
+        logInfo(`Данные обновлены, товаров: ${PRODUCTS.length}`);
         if ($loadingBanner) $loadingBanner.style.display = "none";
         return true;
     } catch (err) {
-        console.warn("Google Sheets недоступен:", err);
+        logWarn("Google Sheets недоступен:", err);
         if ($loadingBanner) $loadingBanner.style.display = "none";
         return false;
     }
@@ -407,10 +411,10 @@ function renderCategoryChips() {
     });
 
     requestAnimationFrame(() => {
-        const firstRealTop = $categoriesBarTop?.querySelectorAll(".cat-chip")[clonesCount];
-        const firstRealBottom = $categoriesBarBottom?.querySelectorAll(".cat-chip")[clonesCount];
-        if (firstRealTop) $categoriesBarTop.scrollLeft = firstRealTop.offsetLeft - 16;
-        if (firstRealBottom) $categoriesBarBottom.scrollLeft = firstRealBottom.offsetLeft - 16;
+        $categoriesBars.forEach(bar => {
+            const metrics = getCategoryTrackMetrics(bar);
+            if (metrics) bar.scrollLeft = metrics.firstRealOffset;
+        });
     });
 
     // Восстановить активный
@@ -433,8 +437,20 @@ function syncActiveChip() {
 
 function centerActiveRealChip() {
     $categoriesBars.forEach(bar => {
-        const realChips = Array.from(bar.querySelectorAll(".cat-chip:not(.is-clone)"));
-        const target = realChips.find(chip => chip.dataset.category === activeCategory);
+        const chips = Array.from(bar.querySelectorAll(".cat-chip"));
+        const matches = chips.filter(chip => chip.dataset.category === activeCategory);
+        if (matches.length === 0) return;
+        const viewCenter = bar.scrollLeft + (bar.clientWidth / 2);
+        let target = matches[0];
+        let minDistance = Infinity;
+        matches.forEach(chip => {
+            const chipCenter = chip.offsetLeft + (chip.offsetWidth / 2);
+            const distance = Math.abs(chipCenter - viewCenter);
+            if (distance < minDistance) {
+                minDistance = distance;
+                target = chip;
+            }
+        });
         if (target) {
             target.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
         }
@@ -469,28 +485,45 @@ function syncCategoryBars(sourceBar) {
     requestAnimationFrame(() => { isSyncingCategoryBars = false; });
 }
 
+function getCategoryTrackMetrics(bar) {
+    const chips = Array.from(bar.querySelectorAll(".cat-chip"));
+    const realCount = chips.length - CATEGORY_CLONES_COUNT * 2;
+    if (realCount <= 0) return null;
+
+    const firstReal = chips[CATEGORY_CLONES_COUNT];
+    const lastReal = chips[CATEGORY_CLONES_COUNT + realCount - 1];
+    const firstAfterReal = chips[CATEGORY_CLONES_COUNT + realCount];
+    if (!firstReal || !lastReal || !firstAfterReal) return null;
+
+    const firstRealOffset = firstReal.offsetLeft - 8;
+    const lastRealOffset = lastReal.offsetLeft - 8;
+    const trackWidth = firstAfterReal.offsetLeft - firstReal.offsetLeft;
+    if (trackWidth <= 0) return null;
+
+    return { firstRealOffset, lastRealOffset, trackWidth };
+}
+
+function normalizeInfiniteScrollPosition(bar) {
+    const metrics = getCategoryTrackMetrics(bar);
+    if (!metrics) return;
+
+    const leftBoundary = metrics.firstRealOffset - 24;
+    const rightBoundary = metrics.lastRealOffset + 24;
+
+    if (bar.scrollLeft < leftBoundary) {
+        bar.scrollLeft += metrics.trackWidth;
+    } else if (bar.scrollLeft > rightBoundary) {
+        bar.scrollLeft -= metrics.trackWidth;
+    }
+}
+
 function setupInfiniteScroll() {
     $categoriesBars.forEach(bar => {
         if (categoriesScrollInitialized.has(bar)) return;
         categoriesScrollInitialized.add(bar);
 
         bar.addEventListener("scroll", () => {
-            const chips = Array.from(bar.querySelectorAll(".cat-chip"));
-            const realCount = chips.length - CATEGORY_CLONES_COUNT * 2;
-            if (realCount <= 0) return;
-
-            const scrollLeft = bar.scrollLeft;
-            const scrollWidth = bar.scrollWidth;
-            const width = bar.offsetWidth;
-
-            if (scrollLeft < 10) {
-                const lastRealChip = chips[chips.length - CATEGORY_CLONES_COUNT - 1];
-                bar.scrollLeft = lastRealChip.offsetLeft - 8;
-            } else if (scrollLeft + width > scrollWidth - 10) {
-                const firstRealChip = chips[CATEGORY_CLONES_COUNT];
-                bar.scrollLeft = firstRealChip.offsetLeft - 8;
-            }
-
+            normalizeInfiniteScrollPosition(bar);
             syncCategoryBars(bar);
         });
     });
@@ -791,7 +824,7 @@ if ($copyCartBtn) {
                 $copyCartBtn.textContent = oldLabel;
             }, 1200);
         } catch (e) {
-            console.warn("Не удалось скопировать заказ:", e);
+            logWarn("Не удалось скопировать заказ:", e);
         }
     });
 }
@@ -815,7 +848,7 @@ function setActiveScreen(screenId) {
     try {
         localStorage.setItem(ACTIVE_SCREEN_KEY, nextScreen);
     } catch (e) {
-        console.warn("Не удалось сохранить активный экран:", e);
+        logWarn("Не удалось сохранить активный экран:", e);
     }
 
     const nextHash = nextScreen === "cart-screen" ? "#cart" : "#catalog";
@@ -842,7 +875,7 @@ if ($searchInput) {
 
 function scheduleAutoRefresh() {
     setInterval(async () => {
-        console.log("[GlobalShop] Авто-обновление данных...");
+        logInfo("Авто-обновление данных...");
         const updated = await fetchProductsFromSheets();
         if (updated) {
             renderCategoryChips();
@@ -944,7 +977,7 @@ function initSwipe() {
         if (!catalogScreen.classList.contains("active")) return;
 
         // Собираем только реальные чипсы для расчёта индекса
-        const refBar = $categoriesBarBottom || $categoriesBars[0];
+        const refBar = $categoriesBars[0];
         const chips = refBar ? Array.from(refBar.querySelectorAll(".cat-chip:not(.is-clone)")) : [];
         if (chips.length === 0) return;
 
