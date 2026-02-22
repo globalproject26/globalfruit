@@ -1,168 +1,33 @@
-// ===== ВСТРОЕННЫЕ ДАННЫЕ (резервные, если Google Sheets недоступен) =====
-const FALLBACK_PRODUCTS = [
-    // Зелень и Грибы
-    { id: 14, name: "Грибы шампиньоны (пучок)", category: "Зелень и Грибы", price: 3690, sale: false },
-    { id: 15, name: "Грибы Эноки (пучок)", category: "Зелень и Грибы", price: 600, sale: false },
-    { id: 62, name: "Петрушка (пучок)", category: "Зелень и Грибы", price: 200, sale: false },
-    { id: 63, name: "Кинза (пучок)", category: "Зелень и Грибы", price: 320, sale: false },
-    { id: 64, name: "Руккола (пучок)", category: "Зелень и Грибы", price: 650, sale: false },
-    { id: 65, name: "Шпинат (пучок)", category: "Зелень и Грибы", price: 780, sale: false },
-    { id: 66, name: "Мята (пучок)", category: "Зелень и Грибы", price: 500, sale: false },
-    { id: 67, name: "Сельдерей (пучок)", category: "Зелень и Грибы", price: 1680, sale: false },
-    { id: 69, name: "Зелёный лук (пучок)", category: "Зелень и Грибы", price: 440, sale: false },
-    { id: 71, name: "Имбирь (пучок)", category: "Зелень и Грибы", price: 2800, sale: false },
-    // Овощи
-    { id: 1, name: "Свекла (кг)", category: "Овощи", price: 280, sale: false },
-    { id: 2, name: "Тыква (кг)", category: "Овощи", price: 480, sale: false },
-    { id: 3, name: "Капуста (кг)", category: "Овощи", price: 280, sale: false },
-    { id: 4, name: "Кабачки (кг)", category: "Овощи", price: 1600, sale: false },
-    { id: 5, name: "Баклажаны (кг)", category: "Овощи", price: 1780, sale: false },
-    { id: 6, name: "Чеснок (кг)", category: "Овощи", price: 2210, sale: false },
-    { id: 7, name: "Помидоры розовые (кг)", category: "Овощи", price: 1790, sale: false },
-    { id: 8, name: "Помидоры на ветке (кг)", category: "Овощи", price: 1590, sale: false },
-    { id: 9, name: "Огурцы Рава (кг)", category: "Овощи", price: 2590, sale: false },
-    { id: 10, name: "Огурцы Миринда Иран (кг)", category: "Овощи", price: 1260, sale: false },
-    { id: 11, name: "Капуста цветная (кг)", category: "Овощи", price: 1500, sale: false },
-    { id: 12, name: "Брокколи (кг)", category: "Овощи", price: 1800, sale: false },
-    { id: 13, name: "Капуста пекинская (кг)", category: "Овощи", price: 460, sale: false },
-    { id: 16, name: "Перец светофор (кг)", category: "Овощи", price: 1950, sale: false },
-    { id: 17, name: "Редька (кг)", category: "Овощи", price: 510, sale: false },
-    { id: 18, name: "Черри красный (кг)", category: "Овощи", price: 1900, sale: false },
-    { id: 19, name: "Квашеная капуста 300г (кг)", category: "Овощи", price: 600, sale: false },
-    { id: 68, name: "Айсберг (кг)", category: "Овощи", price: 2400, sale: false },
-    { id: 70, name: "Листья салата (кг)", category: "Овощи", price: 1700, sale: false },
-    // Орехи и сухофрукты
-    { id: 72, name: "Грецкие орехи чищенные (кг)", category: "Орехи и сухофрукты", price: 5700, sale: false },
-    { id: 73, name: "Кешью (кг)", category: "Орехи и сухофрукты", price: 7800, sale: false },
-    { id: 74, name: "Кешью жареный (кг)", category: "Орехи и сухофрукты", price: 8250, sale: false },
-    { id: 75, name: "Миндаль (кг)", category: "Орехи и сухофрукты", price: 7800, sale: false },
-    { id: 76, name: "Макадамия (кг)", category: "Орехи и сухофрукты", price: 4500, sale: false },
-    { id: 77, name: "Арахис соленый (кг)", category: "Орехи и сухофрукты", price: 2400, sale: false },
-    { id: 78, name: "Арахис жареный (кг)", category: "Орехи и сухофрукты", price: 1800, sale: false },
-    { id: 79, name: "Арахис в карамельной глазури (кг)", category: "Орехи и сухофрукты", price: 2850, sale: false },
-    { id: 80, name: "Арахис в белой глазури (кг)", category: "Орехи и сухофрукты", price: 2850, sale: false },
-    { id: 81, name: "Тыквенные семечки (кг)", category: "Орехи и сухофрукты", price: 3650, sale: false },
-    { id: 82, name: "Чернослив (кг)", category: "Орехи и сухофрукты", price: 2700, sale: false },
-    { id: 83, name: "Курага (кг)", category: "Орехи и сухофрукты", price: 3450, sale: false },
-    { id: 84, name: "Изюм черный (кг)", category: "Орехи и сухофрукты", price: 4500, sale: false },
-    { id: 85, name: "Изюм желтый (кг)", category: "Орехи и сухофрукты", price: 3750, sale: false },
-    { id: 86, name: "Науат (кг)", category: "Орехи и сухофрукты", price: 1500, sale: false },
-    { id: 87, name: "Конфеты фрукты в шоколаде (кг)", category: "Орехи и сухофрукты", price: 4950, sale: false },
-    { id: 88, name: "Кедровые орехи 100г (кг)", category: "Орехи и сухофрукты", price: 1800, sale: false },
-    { id: 89, name: "Сушеное манго 1кг (шт)", category: "Орехи и сухофрукты", price: 2250, sale: false },
-    // Суперфуды и специи
-    { id: 90, name: "Семена льна (кг)", category: "Суперфуды и специи", price: 1350, sale: false },
-    { id: 91, name: "Семена чиа (кг)", category: "Суперфуды и специи", price: 3750, sale: false },
-    { id: 92, name: "Гвоздика 100г (кг)", category: "Суперфуды и специи", price: 1300, sale: false },
-    { id: 93, name: "Корица 100г (кг)", category: "Суперфуды и специи", price: 720, sale: false },
-    { id: 94, name: "Бадьян 100г (кг)", category: "Суперфуды и специи", price: 975, sale: false },
-    // Цитрусы
-    { id: 33, name: "Апельсины (кг)", category: "Цитрусы", price: 990, sale: false },
-    { id: 34, name: "Мандарины листовые (кг)", category: "Цитрусы", price: 850, sale: false },
-    { id: 35, name: "Мандарины королевские листовые (кг)", category: "Цитрусы", price: 940, sale: false },
-    { id: 36, name: "Мандарины Марокко (кг)", category: "Цитрусы", price: 1870, sale: false },
-    { id: 37, name: "Мандарины Миниола (кг)", category: "Цитрусы", price: 1670, sale: false },
-    { id: 38, name: "Мандарины Медовка (кг)", category: "Цитрусы", price: 850, sale: false },
-    { id: 39, name: "Мандарины Турция (кг)", category: "Цитрусы", price: 1550, sale: false },
-    { id: 47, name: "Грейпфрут (кг)", category: "Цитрусы", price: 1800, sale: false },
-    { id: 56, name: "Лайм (кг)", category: "Цитрусы", price: 580, sale: false },
-    { id: 57, name: "Лимон Турция (кг)", category: "Цитрусы", price: 2380, sale: false },
-    { id: 59, name: "Помело медовое (кг)", category: "Цитрусы", price: 799, sale: false },
-    { id: 60, name: "Помело красное (кг)", category: "Цитрусы", price: 1250, sale: false },
-    { id: 61, name: "Помело в сумке (кг)", category: "Цитрусы", price: 2100, sale: false },
-    // Экзотика
-    { id: 32, name: "Бананы (кг)", category: "Экзотика", price: 990, sale: false },
-    { id: 43, name: "Хурма Азербайджан (кг)", category: "Экзотика", price: 1290, sale: false },
-    { id: 44, name: "Авокадо (шт)", category: "Экзотика", price: 1190, sale: false },
-    { id: 45, name: "Ананас (шт)", category: "Экзотика", price: 1250, sale: false },
-    { id: 46, name: "Гранат (кг)", category: "Экзотика", price: 2290, sale: false },
-    { id: 51, name: "Манго Смайлик (кг)", category: "Экзотика", price: 1100, sale: false },
-    { id: 52, name: "Драгон фрут красный (шт)", category: "Экзотика", price: 1800, sale: false },
-    { id: 53, name: "Драгон фрут белый (шт)", category: "Экзотика", price: 870, sale: false },
-    { id: 54, name: "Киви в сетке (кг)", category: "Экзотика", price: 990, sale: false },
-    { id: 55, name: "Кокос с трубочкой (шт)", category: "Экзотика", price: 1870, sale: false },
-    { id: 58, name: "Маракуйя 2 шт (шт)", category: "Экзотика", price: 800, sale: false },
-    // Яблоки и Груши
-    { id: 22, name: "Яблоки Айдаред (кг)", category: "Яблоки и Груши", price: 980, sale: false },
-    { id: 24, name: "Яблоки Лимонка (кг)", category: "Яблоки и Груши", price: 990, sale: false },
-    { id: 26, name: "Яблоки Салтанат (кг)", category: "Яблоки и Груши", price: 1050, sale: false },
-    { id: 28, name: "Яблоки Семиренко (кг)", category: "Яблоки и Груши", price: 980, sale: false },
-    { id: 30, name: "Яблоки Черный принц (кг)", category: "Яблоки и Груши", price: 1190, sale: false },
-    { id: 48, name: "Груши Дюшес (кг)", category: "Яблоки и Груши", price: 860, sale: false },
-    { id: 49, name: "Груши Конференция (кг)", category: "Яблоки и Груши", price: 2090, sale: false },
-    { id: 50, name: "Груши Лесная красавица (кг)", category: "Яблоки и Груши", price: 930, sale: false },
-    // Ягоды
-    { id: 20, name: "Клубника Египет (кг)", category: "Ягоды", price: 1990, sale: false },
-    { id: 21, name: "Голубика (кг)", category: "Ягоды", price: 1650, sale: false },
-    { id: 40, name: "Виноград Бычий глаз (кг)", category: "Ягоды", price: 1390, sale: false },
-    { id: 41, name: "Виноград Хусаин (кг)", category: "Ягоды", price: 1380, sale: false },
-    { id: 42, name: "Виноград Шайн мускат (кг)", category: "Ягоды", price: 3800, sale: false },
-    { id: 95, name: "Облепиха замороженная (кг)", category: "Ягоды", price: 2500, sale: false },
-    { id: 96, name: "Малина замороженная (кг)", category: "Ягоды", price: 5680, sale: false },
-    { id: 97, name: "Вишня замороженная (кг)", category: "Ягоды", price: 5700, sale: false },
-    { id: 98, name: "Клюква замороженная (кг)", category: "Ягоды", price: 4350, sale: false },
-    { id: 99, name: "Смородина замороженная (кг)", category: "Ягоды", price: 5990, sale: false },
-];
+// Shared fallback data moved to js/catalog-data.js.
+// Shared emoji dictionaries moved to js/catalog-data.js and js/catalog-utils.js.
+// Shared utility helpers moved to js/catalog-utils.js.
 
-// ===== КОНФИГ =====
+// ===== CONFIG =====
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRkeFxdnYccFA7PFOXn5EJXfINDocaG3OmfIgD29lt8Y18qZDKbuYjaBA4Mg7U9qwTcN2CvIEYNIY7P/pub?output=csv";
 const WA_PHONE = "77780878211";
-const CACHE_KEY = "globalshop_products";
-const CACHE_TIME_KEY = "globalshop_products_ts";
-const REFRESH_INTERVAL_MS = 600000; // 10 минут
+const CACHE_KEY = "globalshop_products_v2";
+const CACHE_TIME_KEY = "globalshop_products_ts_v2";
+const REFRESH_INTERVAL_MS = 300000; // 5 minutes
 const CATEGORY_CLONES_COUNT = 2;
 const CATEGORY_DRAG_THRESHOLD = 10;
 const CART_KEY = "globalshop_cart_v1";
-const CART_TTL_MS = 24 * 60 * 60 * 1000; // 24 часа
+const CART_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const ACTIVE_SCREEN_KEY = "globalshop_active_screen";
 
-// ===== СОСТОЯНИЕ =====
-let PRODUCTS = [...FALLBACK_PRODUCTS]; // сразу зашиты данные, fetch только обновит цены
+// ===== STATE =====
+let PRODUCTS = [...FALLBACK_PRODUCTS];
+let PRODUCTS_BY_ID = new Map(PRODUCTS.map((p) => [Number(p.id), p]));
 
 let cart = {};
-let activeCategory = null; // Будет установлена при загрузке данных
+let activeCategory = null;
 const categoriesScrollInitialized = new WeakSet();
 const categoriesPointerState = new WeakMap();
 let isSyncingCategoryBars = false;
 
-// ===== ЭМОДЗИ ДЛЯ КАТЕГОРИЙ =====
-const CATEGORY_EMOJIS = {
-    "Акция": "🔥",
-    "Зелень и Грибы": "🌿",
-    "Овощи": "🥦",
-    "Орехи и сухофрукты": "🥜",
-    "Суперфуды и специи": "✨",
-    "Цитрусы": "🍊",
-    "Экзотика": "🥭",
-    "Яблоки и Груши": "🍎",
-    "Ягоды": "🍓",
-};
-
-// ===== ЭМОДЗИ ДЛЯ ТОВАРОВ =====
-const PRODUCT_EMOJIS = {
-    "грибы": "🍄", "шампиньон": "🍄", "эноки": "🍄",
-    "петрушка": "🌿", "кинза": "🌿", "руккола": "🥬", "шпинат": "🥬",
-    "мята": "🌿", "сельдерей": "🥬", "лук": "🧅", "имбирь": "🫚",
-    "свекла": "🫒", "тыква": "🎃", "капуста": "🥬", "кабачк": "🥒",
-    "баклажан": "🍆", "чеснок": "🧄", "помидор": "🍅", "огурц": "🥒",
-    "брокколи": "🥦", "перец": "🫑", "редька": "🫒", "черри": "🍅",
-    "квашен": "🥬", "айсберг": "🥬", "салат": "🥬",
-    "орех": "🥜", "кешью": "🥜", "миндаль": "🥜", "макадам": "🥜",
-    "арахис": "🥜", "семечк": "🌻", "чернослив": "🫐", "курага": "🍑",
-    "изюм": "🍇", "науат": "🍬", "конфет": "🍫", "кедров": "🌲",
-    "манго": "🥭", "семена": "🌱", "чиа": "🌱",
-    "гвоздик": "🌺", "корица": "✨", "бадьян": "⭐",
-    "апельсин": "🍊", "мандарин": "🍊", "грейпфрут": "🍊",
-    "лайм": "🍋", "лимон": "🍋", "помело": "🍈",
-    "банан": "🍌", "хурма": "🍅", "авокадо": "🥑", "ананас": "🍍",
-    "гранат": "🫐", "драгон": "🐉", "киви": "🥝", "кокос": "🥥",
-    "маракуйя": "💛",
-    "яблок": "🍎", "груш": "🍐",
-    "клубник": "🍓", "голубик": "🫐", "виноград": "🍇",
-    "облепих": "🟠", "малин": "🫐", "вишн": "🍒",
-    "клюкв": "🔴", "смородин": "🫐",
-    "сушеное": "🥭", "замороженная": "❄️",
-};
+function setProducts(nextProducts) {
+    PRODUCTS = Array.isArray(nextProducts) ? nextProducts : [];
+    PRODUCTS_BY_ID = new Map(PRODUCTS.map((p) => [Number(p.id), p]));
+}
 
 // ===== DOM =====
 const $productsList = document.getElementById("products-list");
@@ -181,41 +46,10 @@ const $clearCartBtn = document.getElementById("clear-cart-btn");
 const $loadingBanner = document.getElementById("loading-banner");
 const $lastUpdateEl = document.getElementById("last-update");
 
-// ===== УТИЛИТЫ =====
+// ===== РЈРўРР›РРўР« =====
 const LOG_PREFIX = "[ГлобалШоп]";
 const logInfo = (...args) => console.log(LOG_PREFIX, ...args);
 const logWarn = (...args) => console.warn(LOG_PREFIX, ...args);
-function formatPrice(price) {
-    return price.toLocaleString("ru-KZ") + " ₸";
-}
-
-function normalizeUnit(rawUnit) {
-    const unit = String(rawUnit || "").trim().toLowerCase();
-    if (!unit) return "";
-    if (unit.includes("кг") || unit.includes("kg")) return "кг";
-    if (unit.includes("шт")) return "шт";
-    return unit;
-}
-
-function inferUnitFromName(name) {
-    const normalizedName = String(name || "").toLowerCase();
-    if (normalizedName.includes("(шт") || normalizedName.includes(" шт")) return "шт";
-    if (normalizedName.includes("(кг") || normalizedName.includes(" кг")) return "кг";
-    return "шт";
-}
-
-function getProductUnit(product) {
-    return normalizeUnit(product?.unit) || inferUnitFromName(product?.name);
-}
-
-function getProductEmoji(name, explicitEmoji) {
-    if (explicitEmoji && String(explicitEmoji).trim()) return String(explicitEmoji).trim();
-    const lower = name.toLowerCase();
-    for (const [key, emoji] of Object.entries(PRODUCT_EMOJIS)) {
-        if (lower.includes(key)) return emoji;
-    }
-    return "??";
-}
 
 function saveCartToStorage() {
     try {
@@ -254,54 +88,68 @@ function loadCartFromStorage() {
     }
 }
 
-// ===== ПАРСИНГ CSV =====
+// Availability/sale parsers moved to js/catalog-utils.js.
+
+// ===== РџРђР РЎРРќР“ CSV =====
 function parseCSV(csvText) {
     const lines = csvText.trim().split(/\r?\n/);
     if (lines.length < 2) return [];
 
-    const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, "").toLowerCase());
-    const nameIdxRaw = headers.findIndex(h => h.includes("наименован"));
-    const catIdxRaw = headers.findIndex(h => h.includes("категор"));
-    const priceIdxRaw = headers.findIndex(h => h.includes("цена"));
-    const saleIdxRaw = headers.findIndex(h => h.includes("акц"));
-    const iconIdxRaw = headers.findIndex(h => h.includes("икон") || h.includes("emoji") || h.includes("эмодз"));
-    const unitIdxRaw = headers.findIndex(h =>
-        h.includes("ед") ||
-        h.includes("изм") ||
-        h.includes("unit") ||
-        h.includes("ðµð´") ||
-        h.includes("ð¸ð·ð¼")
-    );
+    const headers = parseCSVLine(lines[0]).map(h => h.trim().replace(/^"|"$/g, "").toLowerCase());
+    const idIdxRaw = headers.findIndex(h => h === "id" || h.includes("артик") || h.includes("код"));
+    const nameIdxRaw = headers.findIndex(h => h.includes("name") || h.includes("наименован"));
+    const unitIdxRaw = headers.findIndex(h => h.includes("unit") || h.includes("ед") || h.includes("изм"));
+    const catIdxRaw = headers.findIndex(h => h.includes("category") || h.includes("категор"));
+    const priceIdxRaw = headers.findIndex(h => h.includes("price") || h.includes("цена"));
+    const saleIdxRaw = headers.findIndex(h => h.includes("sale") || h.includes("акц"));
+    const availabilityIdxRaw = headers.findIndex(h => h.includes("availability") || h.includes("stock") || h.includes("налич"));
+    const iconIdxRaw = headers.findIndex(h => h.includes("icon") || h.includes("emoji") || h.includes("эмодз"));
 
     // Fallback to known column positions if header text is garbled by encoding.
+    const idIdx = idIdxRaw >= 0 ? idIdxRaw : 0;
     const nameIdx = nameIdxRaw >= 0 ? nameIdxRaw : 1;
     const unitIdx = unitIdxRaw >= 0 ? unitIdxRaw : 2;
     const catIdx = catIdxRaw >= 0 ? catIdxRaw : 3;
     const priceIdx = priceIdxRaw >= 0 ? priceIdxRaw : 5;
     const saleIdx = saleIdxRaw >= 0 ? saleIdxRaw : 6;
+    const availabilityIdx = availabilityIdxRaw >= 0 ? availabilityIdxRaw : -1;
     const iconIdx = iconIdxRaw >= 0 ? iconIdxRaw : 7;
 
     const products = [];
+    const usedIds = new Set();
     for (let i = 1; i < lines.length; i++) {
-        // Разбираем CSV с учётом кавычек
+        // Разбираем CSV с учетом кавычек
         const cols = parseCSVLine(lines[i]);
         if (!cols || cols.length < 3) continue;
 
+        const idRaw = idIdx >= 0 ? (cols[idIdx] || "").trim() : "";
         const name = (cols[nameIdx] || "").trim();
         const unitRaw = unitIdx >= 0 ? (cols[unitIdx] || "").trim() : "";
         const category = (cols[catIdx] || "").trim();
         const priceRaw = (cols[priceIdx] || "").trim().replace(/[^\d.]/g, "");
-        const saleRaw = saleIdx >= 0 ? (cols[saleIdx] || "").trim().toLowerCase() : "no";
+        const saleRaw = saleIdx >= 0 ? (cols[saleIdx] || "").trim() : "";
+        const availabilityRaw = availabilityIdx >= 0 ? (cols[availabilityIdx] || "").trim() : "";
         const iconRaw = iconIdx >= 0 ? (cols[iconIdx] || "").trim() : "";
 
         if (!name || !category || !priceRaw) continue;
+        const isAvailable = parseAvailabilityValue(availabilityRaw);
+        if (!isAvailable) continue;
+
+        const parsedId = parseInt(String(idRaw).replace(/[^\d]/g, ""), 10);
+        let productId = Number.isFinite(parsedId) && parsedId > 0 ? parsedId : i;
+        if (usedIds.has(productId)) {
+            logWarn("Duplicate product id in CSV, fallback to row id:", productId, "row:", i);
+            productId = i;
+        }
+        usedIds.add(productId);
 
         products.push({
-            id: i,
+            id: productId,
             name,
             category,
             price: parseInt(priceRaw, 10) || 0,
-            sale: saleRaw === "yes",
+            sale: parseSaleValue(saleRaw),
+            available: isAvailable,
             emoji: iconRaw || "",
             unit: normalizeUnit(unitRaw),
         });
@@ -309,26 +157,9 @@ function parseCSV(csvText) {
     return products;
 }
 
-function parseCSVLine(line) {
-    const result = [];
-    let cur = "";
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (ch === '"') {
-            inQuotes = !inQuotes;
-        } else if (ch === "," && !inQuotes) {
-            result.push(cur);
-            cur = "";
-        } else {
-            cur += ch;
-        }
-    }
-    result.push(cur);
-    return result;
-}
+// CSV line parser moved to js/catalog-utils.js.
 
-// ===== ЗАГРУЗКА ИЗ GOOGLE SHEETS (только фоновое обновление) =====
+// ===== Р—РђР“Р РЈР—РљРђ РР— GOOGLE SHEETS (С‚РѕР»СЊРєРѕ С„РѕРЅРѕРІРѕРµ РѕР±РЅРѕРІР»РµРЅРёРµ) =====
 async function fetchProductsFromSheets() {
     // Проверяем кеш через localStorage
     try {
@@ -341,7 +172,7 @@ async function fetchProductsFromSheets() {
                 if (cached) {
                     const data = JSON.parse(cached);
                     if (data.length > 0) {
-                        PRODUCTS = data;
+                        setProducts(data);
                         updateLastUpdateDisplay(parseInt(cachedTime, 10));
                         logInfo("Данные взяты из кеша.");
                         return true;
@@ -365,7 +196,7 @@ async function fetchProductsFromSheets() {
         const parsed = parseCSV(csv);
         if (parsed.length === 0) throw new Error("Пустой ответ");
 
-        PRODUCTS = parsed;
+        setProducts(parsed);
         try {
             localStorage.setItem(CACHE_KEY, JSON.stringify(PRODUCTS));
             localStorage.setItem(CACHE_TIME_KEY, String(Date.now()));
@@ -389,17 +220,17 @@ function updateLastUpdateDisplay(ts) {
     $lastUpdateEl.textContent = `Обновлено: ${h}:${m}`;
 }
 
-// ===== ПОЛУЧЕНИЕ КАТЕГОРИЙ =====
+// ===== РџРћР›РЈР§Р•РќРР• РљРђРўР•Р“РћР РР™ =====
 function getCategories() {
     const cats = [...new Set(PRODUCTS.map(p => p.category))];
     return cats;
 }
 
 function hasSaleProducts() {
-    return PRODUCTS.some(p => p.sale);
+    return PRODUCTS.some(p => p.sale && p.available !== false);
 }
 
-// ===== РЕНДЕР КАТЕГОРИЙ-ЧИПСОВ =====
+// ===== Р Р•РќР”Р•Р  РљРђРўР•Р“РћР РР™-Р§РРџРЎРћР’ =====
 function renderCategoryChips() {
     $categoriesBars.forEach(bar => {
         const existingChips = bar.querySelectorAll(".cat-chip");
@@ -409,7 +240,7 @@ function renderCategoryChips() {
     const cats = getCategories();
     const finalCats = [];
 
-    // Сначала "Акция" если есть товары со скидкой
+    // РЎРЅР°С‡Р°Р»Р° "Акция" РµСЃР»Рё РµСЃС‚СЊ С‚РѕРІР°СЂС‹ СЃРѕ СЃРєРёРґРєРѕР№
     if (hasSaleProducts()) {
         finalCats.push({ id: "sale", label: "🔥 Акции" });
     }
@@ -675,7 +506,7 @@ function renderProductCards(products) {
                     <div class="product-price">${formatPrice(p.price)}</div>
                 </div>
                 <div class="counter">
-                    <button class="counter-btn minus" data-id="${p.id}" data-action="minus">−</button>
+                    <button class="counter-btn minus" data-id="${p.id}" data-action="minus">&#8722;</button>
                     <div class="counter-value-wrap">
                         <span class="counter-val${hasValue}" data-id="${p.id}">${qty}</span>
                         <span class="counter-unit">${unit}</span>
@@ -687,7 +518,7 @@ function renderProductCards(products) {
     }).join("");
 }
 
-// ===== ОБРАБОТКА КЛИКОВ НА СЧЁТЧИКАХ =====
+// ===== РћР‘Р РђР‘РћРўРљРђ РљР›РРљРћР’ РќРђ РЎР§РЃРўР§РРљРђРҐ =====
 $productsList.addEventListener("click", (e) => {
     const btn = e.target.closest(".counter-btn");
     if (!btn) return;
@@ -695,24 +526,17 @@ $productsList.addEventListener("click", (e) => {
 
     const id = Number(btn.dataset.id);
     const action = btn.dataset.action;
-
-    if (action === "plus") {
-        cart[id] = (cart[id] || 0) + 1;
-    } else if (action === "minus") {
-        if (cart[id] && cart[id] > 0) {
-            cart[id]--;
-            if (cart[id] === 0) delete cart[id];
-        }
-    }
+    const qty = changeCartItemQuantity(id, action);
 
     // Обновление конкретной карточки без перерендера
     const card = btn.closest(".product-card");
     if (card) {
         const valSpan = card.querySelector(".counter-val");
         const plusBtn = card.querySelector(".counter-btn.plus");
-        const qty = cart[id] || 0;
-        valSpan.textContent = qty;
-        valSpan.classList.toggle("has-value", qty > 0);
+        if (valSpan) {
+            valSpan.textContent = qty;
+            valSpan.classList.toggle("has-value", qty > 0);
+        }
         card.classList.toggle("in-cart", qty > 0);
         if (plusBtn) plusBtn.classList.toggle("is-active", qty > 0);
     }
@@ -721,7 +545,7 @@ $productsList.addEventListener("click", (e) => {
     saveCartToStorage();
 });
 
-// ===== БЕЙДЖ КОРЗИНЫ =====
+// ===== Р‘Р•Р™Р”Р– РљРћР Р—РРќР« =====
 function updateCartBadge() {
     const totalItems = Object.values(cart).reduce((s, q) => s + q, 0);
     if (totalItems > 0) {
@@ -732,15 +556,36 @@ function updateCartBadge() {
     }
 }
 
-// ===== РЕНДЕР КОРЗИНЫ =====
-function renderCart() {
-    const items = Object.entries(cart)
+function changeCartItemQuantity(id, action) {
+    if (!Number.isFinite(id) || id <= 0) return 0;
+    if (action === "plus") {
+        cart[id] = (cart[id] || 0) + 1;
+    } else if (action === "minus") {
+        if (cart[id] && cart[id] > 0) {
+            cart[id]--;
+            if (cart[id] === 0) delete cart[id];
+        }
+    }
+    return cart[id] || 0;
+}
+
+function clearCartState() {
+    Object.keys(cart).forEach((k) => delete cart[k]);
+}
+
+function getCartItems() {
+    return Object.entries(cart)
         .map(([id, qty]) => {
-            const product = PRODUCTS.find(p => p.id === Number(id));
+            const product = PRODUCTS_BY_ID.get(Number(id));
             return product ? { ...product, qty } : null;
         })
         .filter(Boolean)
         .filter(item => item.qty > 0);
+}
+
+// ===== Р Р•РќР”Р•Р  РљРћР Р—РРќР« =====
+function renderCart() {
+    const items = getCartItems();
 
     if (items.length === 0) {
         $cartItems.innerHTML = "";
@@ -765,7 +610,7 @@ function renderCart() {
                 <span class="cart-item-price">${formatPrice(item.price * item.qty)}</span>
             </div>
             <div class="counter cart-item-counter">
-                <button class="counter-btn minus cart-counter-btn" data-id="${item.id}" data-action="minus">−</button>
+                <button class="counter-btn minus cart-counter-btn" data-id="${item.id}" data-action="minus">&#8722;</button>
                 <div class="counter-value-wrap">
                     <span class="counter-val has-value">${item.qty}</span>
                     <span class="counter-unit">${getProductUnit(item)}</span>
@@ -775,7 +620,7 @@ function renderCart() {
         </div>
     `).join("");
 
-    const textLines = items.map(item => `${item.name} × ${item.qty}`);
+    const textLines = items.map(item => `${item.name} x ${item.qty}`);
     const totalPrice = items.reduce((s, item) => s + item.price * item.qty, 0);
 
     $cartText.textContent = textLines.join("\n");
@@ -793,7 +638,7 @@ function renderCart() {
 function buildOrderText(items) {
     let text = "🛒 Заказ с GlobalShop:\n\n";
     items.forEach(item => {
-        text += `${item.name} × ${item.qty}\n`;
+        text += `${item.name} x ${item.qty}\n`;
     });
     text += "\nПосчитайте, пожалуйста, точный вес и стоимость.";
     return text;
@@ -803,11 +648,11 @@ function buildWhatsAppText(items) {
     return encodeURIComponent(buildOrderText(items));
 }
 
-// ===== ОЧИСТИТЬ КОРЗИНУ =====
+// ===== РћР§РРЎРўРРўР¬ РљРћР Р—РРќРЈ =====
 $clearCartBtn.addEventListener("click", () => {
     if (Object.keys(cart).length === 0) return;
     if (confirm("Очистить корзину?")) {
-        Object.keys(cart).forEach(k => delete cart[k]);
+        clearCartState();
         saveCartToStorage();
         updateCartBadge();
         renderCart();
@@ -821,15 +666,7 @@ $cartItems.addEventListener("click", (e) => {
 
     const id = Number(btn.dataset.id);
     const action = btn.dataset.action;
-
-    if (action === "plus") {
-        cart[id] = (cart[id] || 0) + 1;
-    } else if (action === "minus") {
-        if (cart[id] && cart[id] > 0) {
-            cart[id]--;
-            if (cart[id] === 0) delete cart[id];
-        }
-    }
+    changeCartItemQuantity(id, action);
 
     saveCartToStorage();
     updateCartBadge();
@@ -896,15 +733,16 @@ function setActiveScreen(screenId) {
     }
 }
 
-// ===== НАВИГАЦИЯ =====
+// ===== РќРђР’РР“РђР¦РРЇ =====
 document.querySelectorAll(".nav-btn").forEach(btn => {
     btn.addEventListener("click", () => {
         setActiveScreen(btn.dataset.screen);
     });
 });
 
-// ===== ПОИСК =====
+// ===== РџРћРРЎРљ =====
 let searchTimeout;
+let isRefreshInProgress = false;
 if ($searchInput) {
     $searchInput.addEventListener("input", () => {
         clearTimeout(searchTimeout);
@@ -914,19 +752,26 @@ if ($searchInput) {
 
 function scheduleAutoRefresh() {
     setInterval(async () => {
+        if (document.hidden) return;
+        if (isRefreshInProgress) return;
+        isRefreshInProgress = true;
         logInfo("Авто-обновление данных...");
-        const updated = await fetchProductsFromSheets();
-        if (updated) {
-            renderCategoryChips();
-            renderProducts();
-            if (document.getElementById("cart-screen").classList.contains("active")) {
-                renderCart();
+        try {
+            const updated = await fetchProductsFromSheets();
+            if (updated) {
+                renderCategoryChips();
+                renderProducts();
+                if (document.getElementById("cart-screen").classList.contains("active")) {
+                    renderCart();
+                }
             }
+        } finally {
+            isRefreshInProgress = false;
         }
     }, REFRESH_INTERVAL_MS);
 }
 
-// ===== ИНИЦИАЛИЗАЦИЯ =====
+// ===== РРќРР¦РРђР›РР—РђР¦РРЇ =====
 function init() {
     loadCartFromStorage();
     updateCartBadge();
@@ -941,7 +786,7 @@ function init() {
             renderCategoryChips();
             renderProducts();
         }
-    }).catch(() => {/* нет интернета — работаем с встроенными */ });
+    }).catch(() => {/* РЅРµС‚ РёРЅС‚РµСЂРЅРµС‚Р° вЂ” СЂР°Р±РѕС‚Р°РµРј СЃ РІСЃС‚СЂРѕРµРЅРЅС‹РјРё */ });
 
     // 3. Планируем авто-обновление каждый час
     scheduleAutoRefresh();
@@ -977,14 +822,14 @@ function init() {
     }
 }
 
-// ===== СВАЙП — ПЕРЕКЛЮЧЕНИЕ КАТЕГОРИЙ ПО КРУГУ =====
+// ===== РЎР’РђР™Рџ вЂ” РџР•Р Р•РљР›Р®Р§Р•РќРР• РљРђРўР•Р“РћР РР™ РџРћ РљР РЈР“РЈ =====
 function initSwipe() {
     let startX = 0;
     let startY = 0;
     let tracking = false;
 
-    const MIN_X = 70;   // минимум px по горизонтали
-    const MAX_YR = 0.6;  // вертикаль не больше 60% от горизонтали
+    const MIN_X = 70;   // РјРёРЅРёРјСѓРј px РїРѕ РіРѕСЂРёР·РѕРЅС‚Р°Р»Рё
+    const MAX_YR = 0.6;  // РІРµСЂС‚РёРєР°Р»СЊ РЅРµ Р±РѕР»СЊС€Рµ 60% РѕС‚ РіРѕСЂРёР·РѕРЅС‚Р°Р»Рё
 
     document.addEventListener("touchstart", (e) => {
         if (e.touches.length !== 1) return;
