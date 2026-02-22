@@ -44,10 +44,6 @@ body {
     padding-bottom: calc(var(--nav-height) + var(--categories-height) + 18px);
 }
 
-#catalog-screen {
-    padding-top: calc(var(--categories-height) + 10px);
-}
-
 /* ===== ЭКРАНЫ ===== */
 .screen {
     display: none;
@@ -198,7 +194,6 @@ body {
 
 /* ===== ФИКСИРОВАННЫЕ БАРЫ КАТЕГОРИЙ (ВЕРХ/НИЗ) ===== */
 .sticky-bar {
-    position: fixed;
     left: 0;
     right: 0;
     z-index: 150;
@@ -208,6 +203,7 @@ body {
 }
 
 .sticky-bar-top {
+    position: sticky;
     top: 0;
     z-index: 170;
     padding: 8px 0;
@@ -215,16 +211,22 @@ body {
 }
 
 .sticky-bar-bottom {
+    position: fixed;
     bottom: var(--nav-height);
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
 }
 
 /* Ограничение ширины на десктопе */
 @media (min-width: 480px) {
-    .sticky-bar {
+    .sticky-bar-bottom {
         max-width: 430px;
         left: 50%;
         transform: translateX(-50%);
+    }
+
+    .sticky-bar-top {
+        max-width: 430px;
+        margin: 0 auto;
     }
 }
 
