@@ -121,12 +121,9 @@ let PRODUCTS = [...FALLBACK_PRODUCTS]; // сразу зашиты данные, 
 
 let cart = {};
 let activeCategory = null; // Будет установлена при загрузке данных
-let categoriesScrollInitialized = false;
-let categoriesPointerDown = false;
-let categoriesStartedDragging = false;
-let ignoreNextCategoryClick = false;
-let categoryStartX = 0;
-let categoryStartY = 0;
+const categoriesScrollInitialized = new WeakSet();
+const categoriesPointerState = new WeakMap();
+let isSyncingCategoryBars = false;
 
 // ===== ЭМОДЗИ ДЛЯ КАТЕГОРИЙ =====
 const CATEGORY_EMOJIS = {
@@ -171,7 +168,9 @@ const PRODUCT_EMOJIS = {
 const $productsList = document.getElementById("products-list");
 const $emptyState = document.getElementById("empty-state");
 const $searchInput = document.getElementById("search-input");
-const $categoriesBar = document.querySelector(".categories-bar");
+const $categoriesBars = Array.from(document.querySelectorAll(".categories-bar"));
+const $categoriesBarTop = document.getElementById("categories-bar-top");
+const $categoriesBarBottom = document.getElementById("categories-bar-bottom");
 const $cartItems = document.getElementById("cart-items");
 const $cartEmpty = document.getElementById("cart-empty");
 const $cartSummary = document.getElementById("cart-summary");
@@ -358,8 +357,10 @@ function hasSaleProducts() {
 
 // ===== РЕНДЕР КАТЕГОРИЙ-ЧИПСОВ =====
 function renderCategoryChips() {
-    const existingChips = $categoriesBar.querySelectorAll(".cat-chip");
-    existingChips.forEach(c => c.remove());
+    $categoriesBars.forEach(bar => {
+        const existingChips = bar.querySelectorAll(".cat-chip");
+        existingChips.forEach(c => c.remove());
+    });
 
     const cats = getCategories();
     const finalCats = [];
@@ -382,23 +383,24 @@ function renderCategoryChips() {
     const clonesCount = CATEGORY_CLONES_COUNT;
     const startClones = finalCats.slice(-clonesCount);
     const endClones = finalCats.slice(0, clonesCount);
+    const source = [...startClones, ...finalCats, ...endClones];
 
-    [...startClones, ...finalCats, ...endClones].forEach((catObj, index) => {
-        const chip = makeChip(catObj.id, catObj.label);
-        // Если это клон, помечаем его (хотя логика переключения будет по id)
-        if (index < clonesCount || index >= clonesCount + finalCats.length) {
-            chip.classList.add("is-clone");
-        }
-        $categoriesBar.appendChild(chip);
+    $categoriesBars.forEach(bar => {
+        source.forEach((catObj, index) => {
+            const chip = makeChip(catObj.id, catObj.label);
+            if (index < clonesCount || index >= clonesCount + finalCats.length) {
+                chip.classList.add("is-clone");
+            }
+            bar.appendChild(chip);
+        });
     });
 
-    // Устанавливаем положение скролла на реальные элементы
-    setTimeout(() => {
-        const firstRealChip = $categoriesBar.querySelectorAll(".cat-chip")[clonesCount];
-        if (firstRealChip) {
-            $categoriesBar.scrollLeft = firstRealChip.offsetLeft - 16;
-        }
-    }, 10);
+    requestAnimationFrame(() => {
+        const firstRealTop = $categoriesBarTop?.querySelectorAll(".cat-chip")[clonesCount];
+        const firstRealBottom = $categoriesBarBottom?.querySelectorAll(".cat-chip")[clonesCount];
+        if (firstRealTop) $categoriesBarTop.scrollLeft = firstRealTop.offsetLeft - 16;
+        if (firstRealBottom) $categoriesBarBottom.scrollLeft = firstRealBottom.offsetLeft - 16;
+    });
 
     // Восстановить активный
     syncActiveChip();
@@ -419,84 +421,113 @@ function syncActiveChip() {
 }
 
 function centerActiveRealChip() {
-    const realChips = Array.from($categoriesBar.querySelectorAll(".cat-chip:not(.is-clone)"));
-    const target = realChips.find(chip => chip.dataset.category === activeCategory);
-    if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-    }
+    $categoriesBars.forEach(bar => {
+        const realChips = Array.from(bar.querySelectorAll(".cat-chip:not(.is-clone)"));
+        const target = realChips.find(chip => chip.dataset.category === activeCategory);
+        if (target) {
+            target.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+        }
+    });
 }
 
-$categoriesBar.addEventListener("click", (e) => {
-    const chip = e.target.closest(".cat-chip");
-    if (!chip) return;
-    if (ignoreNextCategoryClick || categoriesStartedDragging) return;
+function bindCategoryClick(bar) {
+    bar.addEventListener("click", (e) => {
+        const chip = e.target.closest(".cat-chip");
+        if (!chip) return;
 
-    activeCategory = chip.dataset.category;
-    syncActiveChip();
-    renderProducts();
-    // Плавный скролл к началу списка (так как список теперь над категориями, 
-    // но визуально категории внизу - прокручиваем окно вверх)
-    window.scrollTo({ top: 0, behavior: "smooth" });
+        const state = categoriesPointerState.get(bar);
+        if (state?.ignoreNextClick || state?.startedDragging) return;
 
-    // Центрируем реальный чип (а не его клон)
-    centerActiveRealChip();
-});
+        activeCategory = chip.dataset.category;
+        syncActiveChip();
+        renderProducts();
+        centerActiveRealChip();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+}
+
+function syncCategoryBars(sourceBar) {
+    if (isSyncingCategoryBars) return;
+    isSyncingCategoryBars = true;
+    const left = sourceBar.scrollLeft;
+    $categoriesBars.forEach(bar => {
+        if (bar !== sourceBar) {
+            bar.scrollLeft = left;
+        }
+    });
+    requestAnimationFrame(() => { isSyncingCategoryBars = false; });
+}
 
 function setupInfiniteScroll() {
-    if (categoriesScrollInitialized) return;
-    categoriesScrollInitialized = true;
+    $categoriesBars.forEach(bar => {
+        if (categoriesScrollInitialized.has(bar)) return;
+        categoriesScrollInitialized.add(bar);
 
-    $categoriesBar.addEventListener("scroll", () => {
-        const chips = Array.from($categoriesBar.querySelectorAll(".cat-chip"));
-        const realCount = chips.length - CATEGORY_CLONES_COUNT * 2;
-        if (realCount <= 0) return;
+        bar.addEventListener("scroll", () => {
+            const chips = Array.from(bar.querySelectorAll(".cat-chip"));
+            const realCount = chips.length - CATEGORY_CLONES_COUNT * 2;
+            if (realCount <= 0) return;
 
-        const scrollLeft = $categoriesBar.scrollLeft;
-        const scrollWidth = $categoriesBar.scrollWidth;
-        const width = $categoriesBar.offsetWidth;
+            const scrollLeft = bar.scrollLeft;
+            const scrollWidth = bar.scrollWidth;
+            const width = bar.offsetWidth;
 
-        // Если слишком близко к левому краю (в зоне левых клонов)
-        if (scrollLeft < 10) {
-            const lastRealChip = chips[chips.length - CATEGORY_CLONES_COUNT - 1];
-            $categoriesBar.scrollLeft = lastRealChip.offsetLeft - 8;
-        }
-        // Если слишком близко к правому краю (в зоне правых клонов)
-        else if (scrollLeft + width > scrollWidth - 10) {
-            const firstRealChip = chips[CATEGORY_CLONES_COUNT];
-            $categoriesBar.scrollLeft = firstRealChip.offsetLeft - 8;
-        }
+            if (scrollLeft < 10) {
+                const lastRealChip = chips[chips.length - CATEGORY_CLONES_COUNT - 1];
+                bar.scrollLeft = lastRealChip.offsetLeft - 8;
+            } else if (scrollLeft + width > scrollWidth - 10) {
+                const firstRealChip = chips[CATEGORY_CLONES_COUNT];
+                bar.scrollLeft = firstRealChip.offsetLeft - 8;
+            }
+
+            syncCategoryBars(bar);
+        });
     });
 }
 
 function setupCategoryPointerGuards() {
-    $categoriesBar.addEventListener("pointerdown", (e) => {
-        categoriesPointerDown = true;
-        categoriesStartedDragging = false;
-        categoryStartX = e.clientX;
-        categoryStartY = e.clientY;
-    });
-
-    $categoriesBar.addEventListener("pointermove", (e) => {
-        if (!categoriesPointerDown) return;
-        const dx = Math.abs(e.clientX - categoryStartX);
-        const dy = Math.abs(e.clientY - categoryStartY);
-        if (dx > CATEGORY_DRAG_THRESHOLD || dy > CATEGORY_DRAG_THRESHOLD) {
-            categoriesStartedDragging = true;
+    $categoriesBars.forEach(bar => {
+        if (!categoriesPointerState.has(bar)) {
+            categoriesPointerState.set(bar, {
+                pointerDown: false,
+                startedDragging: false,
+                ignoreNextClick: false,
+                startX: 0,
+                startY: 0,
+            });
         }
+
+        const state = categoriesPointerState.get(bar);
+
+        bar.addEventListener("pointerdown", (e) => {
+            state.pointerDown = true;
+            state.startedDragging = false;
+            state.startX = e.clientX;
+            state.startY = e.clientY;
+        });
+
+        bar.addEventListener("pointermove", (e) => {
+            if (!state.pointerDown) return;
+            const dx = Math.abs(e.clientX - state.startX);
+            const dy = Math.abs(e.clientY - state.startY);
+            if (dx > CATEGORY_DRAG_THRESHOLD || dy > CATEGORY_DRAG_THRESHOLD) {
+                state.startedDragging = true;
+            }
+        });
+
+        const stopPointerTracking = () => {
+            if (!state.pointerDown) return;
+            state.pointerDown = false;
+            if (state.startedDragging) {
+                state.ignoreNextClick = true;
+                setTimeout(() => { state.ignoreNextClick = false; }, 120);
+            }
+            setTimeout(() => { state.startedDragging = false; }, 0);
+        };
+
+        window.addEventListener("pointerup", stopPointerTracking);
+        window.addEventListener("pointercancel", stopPointerTracking);
     });
-
-    const stopPointerTracking = () => {
-        if (!categoriesPointerDown) return;
-        categoriesPointerDown = false;
-        if (categoriesStartedDragging) {
-            ignoreNextCategoryClick = true;
-            setTimeout(() => { ignoreNextCategoryClick = false; }, 120);
-        }
-        setTimeout(() => { categoriesStartedDragging = false; }, 0);
-    };
-
-    window.addEventListener("pointerup", stopPointerTracking);
-    window.addEventListener("pointercancel", stopPointerTracking);
 }
 
 // ===== РЕНДЕР ТОВАРОВ =====
@@ -775,6 +806,11 @@ function setActiveScreen(screenId) {
     } catch (e) {
         console.warn("Не удалось сохранить активный экран:", e);
     }
+
+    const nextHash = nextScreen === "cart-screen" ? "#cart" : "#catalog";
+    if (window.location.hash !== nextHash) {
+        history.replaceState(null, "", nextHash);
+    }
 }
 
 // ===== НАВИГАЦИЯ =====
@@ -840,6 +876,7 @@ function init() {
     }
 
     // 5. Бесконечный скролл по кругу + защита от ложного клика при прокрутке
+    $categoriesBars.forEach(bindCategoryClick);
     setupInfiniteScroll();
     setupCategoryPointerGuards();
 
@@ -847,8 +884,11 @@ function init() {
     initSwipe();
 
     try {
+        const fromHash = window.location.hash === "#cart"
+            ? "cart-screen"
+            : (window.location.hash === "#catalog" ? "catalog-screen" : null);
         const savedScreen = localStorage.getItem(ACTIVE_SCREEN_KEY);
-        setActiveScreen(savedScreen || "catalog-screen");
+        setActiveScreen(fromHash || savedScreen || "catalog-screen");
     } catch (e) {
         setActiveScreen("catalog-screen");
     }
@@ -893,7 +933,8 @@ function initSwipe() {
         if (!catalogScreen.classList.contains("active")) return;
 
         // Собираем только реальные чипсы для расчёта индекса
-        const chips = Array.from($categoriesBar.querySelectorAll(".cat-chip:not(.is-clone)"));
+        const refBar = $categoriesBarBottom || $categoriesBars[0];
+        const chips = refBar ? Array.from(refBar.querySelectorAll(".cat-chip:not(.is-clone)")) : [];
         if (chips.length === 0) return;
 
         const currentIdx = chips.findIndex(c => c.dataset.category === activeCategory);
