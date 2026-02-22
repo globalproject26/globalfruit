@@ -189,6 +189,25 @@ function formatPrice(price) {
     return price.toLocaleString("ru-KZ") + " ₸";
 }
 
+function normalizeUnit(rawUnit) {
+    const unit = String(rawUnit || "").trim().toLowerCase();
+    if (!unit) return "";
+    if (unit.includes("кг") || unit.includes("kg")) return "кг";
+    if (unit.includes("шт")) return "шт";
+    return unit;
+}
+
+function inferUnitFromName(name) {
+    const normalizedName = String(name || "").toLowerCase();
+    if (normalizedName.includes("(шт") || normalizedName.includes(" шт")) return "шт";
+    if (normalizedName.includes("(кг") || normalizedName.includes(" кг")) return "кг";
+    return "шт";
+}
+
+function getProductUnit(product) {
+    return normalizeUnit(product?.unit) || inferUnitFromName(product?.name);
+}
+
 function getProductEmoji(name, explicitEmoji) {
     if (explicitEmoji && String(explicitEmoji).trim()) return String(explicitEmoji).trim();
     const lower = name.toLowerCase();
@@ -246,9 +265,17 @@ function parseCSV(csvText) {
     const priceIdxRaw = headers.findIndex(h => h.includes("цена"));
     const saleIdxRaw = headers.findIndex(h => h.includes("акц"));
     const iconIdxRaw = headers.findIndex(h => h.includes("икон") || h.includes("emoji") || h.includes("эмодз"));
+    const unitIdxRaw = headers.findIndex(h =>
+        h.includes("ед") ||
+        h.includes("изм") ||
+        h.includes("unit") ||
+        h.includes("ðµð´") ||
+        h.includes("ð¸ð·ð¼")
+    );
 
     // Fallback to known column positions if header text is garbled by encoding.
     const nameIdx = nameIdxRaw >= 0 ? nameIdxRaw : 1;
+    const unitIdx = unitIdxRaw >= 0 ? unitIdxRaw : 2;
     const catIdx = catIdxRaw >= 0 ? catIdxRaw : 3;
     const priceIdx = priceIdxRaw >= 0 ? priceIdxRaw : 5;
     const saleIdx = saleIdxRaw >= 0 ? saleIdxRaw : 6;
@@ -261,6 +288,7 @@ function parseCSV(csvText) {
         if (!cols || cols.length < 3) continue;
 
         const name = (cols[nameIdx] || "").trim();
+        const unitRaw = unitIdx >= 0 ? (cols[unitIdx] || "").trim() : "";
         const category = (cols[catIdx] || "").trim();
         const priceRaw = (cols[priceIdx] || "").trim().replace(/[^\d.]/g, "");
         const saleRaw = saleIdx >= 0 ? (cols[saleIdx] || "").trim().toLowerCase() : "no";
@@ -275,6 +303,7 @@ function parseCSV(csvText) {
             price: parseInt(priceRaw, 10) || 0,
             sale: saleRaw === "yes",
             emoji: iconRaw || "",
+            unit: normalizeUnit(unitRaw),
         });
     }
     return products;
@@ -633,6 +662,7 @@ function renderProducts() {
 function renderProductCards(products) {
     return products.map(p => {
         const qty = cart[p.id] || 0;
+        const unit = getProductUnit(p);
         const inCart = qty > 0 ? " in-cart" : "";
         const hasValue = qty > 0 ? " has-value" : "";
         const plusActive = qty > 0 ? " is-active" : "";
@@ -646,7 +676,10 @@ function renderProductCards(products) {
                 </div>
                 <div class="counter">
                     <button class="counter-btn minus" data-id="${p.id}" data-action="minus">−</button>
-                    <span class="counter-val${hasValue}" data-id="${p.id}">${qty}</span>
+                    <div class="counter-value-wrap">
+                        <span class="counter-val${hasValue}" data-id="${p.id}">${qty}</span>
+                        <span class="counter-unit">${unit}</span>
+                    </div>
                     <button class="counter-btn plus${plusActive}" data-id="${p.id}" data-action="plus">+</button>
                 </div>
             </div>
@@ -733,7 +766,10 @@ function renderCart() {
             </div>
             <div class="counter cart-item-counter">
                 <button class="counter-btn minus cart-counter-btn" data-id="${item.id}" data-action="minus">−</button>
-                <span class="counter-val has-value">${item.qty}</span>
+                <div class="counter-value-wrap">
+                    <span class="counter-val has-value">${item.qty}</span>
+                    <span class="counter-unit">${getProductUnit(item)}</span>
+                </div>
                 <button class="counter-btn plus is-active cart-counter-btn" data-id="${item.id}" data-action="plus">+</button>
             </div>
         </div>
