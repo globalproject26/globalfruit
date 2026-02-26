@@ -531,13 +531,14 @@ function renderProductCards(products) {
         const unit = getProductUnit(p);
         const inCart = qty > 0 ? " in-cart" : "";
         const saleCard = p.sale ? " sale-card" : "";
+        const saleFlame = p.sale ? `<span class="sale-flame" aria-label="Акция" title="Акция">🔥</span>` : "";
         const hasValue = qty > 0 ? " has-value" : "";
         const plusActive = qty > 0 ? " is-active" : "";
         return `
             <div class="product-card${inCart}${saleCard}" data-id="${p.id}">
                 <div class="product-emoji">${getProductEmoji(p.name, p.emoji)}</div>
                 <div class="product-info">
-                    <div class="product-name">${getDisplayProductName(p)}</div>
+                    <div class="product-name">${getDisplayProductName(p)} ${saleFlame}</div>
                     <div class="product-price">${formatPrice(p.price)}</div>
                 </div>
                 <div class="counter">
