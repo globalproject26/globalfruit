@@ -696,8 +696,8 @@ function buildOrderText(items) {
     });
     const approxTotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
     const approxTotalTg = `${Math.round(approxTotal).toLocaleString("ru-KZ")} тг`;
-    text += `\nПриблительая стоимость ~${approxTotalTg}`;
-    text += "\n(окончательное после точного взвешивания)";
+    text += `\nПриблизительная стоимость — ${approxTotalTg}.`;
+    text += "\n(Итоговая после точного взвешивания)";
     return text;
 }
 
