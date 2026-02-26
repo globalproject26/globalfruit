@@ -530,14 +530,14 @@ function renderProductCards(products) {
         const qty = cart[p.id] || 0;
         const unit = getProductUnit(p);
         const inCart = qty > 0 ? " in-cart" : "";
+        const saleCard = p.sale ? " sale-card" : "";
         const hasValue = qty > 0 ? " has-value" : "";
         const plusActive = qty > 0 ? " is-active" : "";
-        const saleBadge = p.sale ? `<span class="sale-badge">🔥 Акция</span>` : "";
         return `
-            <div class="product-card${inCart}" data-id="${p.id}">
+            <div class="product-card${inCart}${saleCard}" data-id="${p.id}">
                 <div class="product-emoji">${getProductEmoji(p.name, p.emoji)}</div>
                 <div class="product-info">
-                    <div class="product-name">${getDisplayProductName(p)} ${saleBadge}</div>
+                    <div class="product-name">${getDisplayProductName(p)}</div>
                     <div class="product-price">${formatPrice(p.price)}</div>
                 </div>
                 <div class="counter">
