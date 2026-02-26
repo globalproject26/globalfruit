@@ -48,10 +48,11 @@ const $loadingBanner = document.getElementById("loading-banner");
 const $lastUpdateEl = document.getElementById("last-update");
 
 function getQuantityStep(product) {
-    const unit = getProductUnit(product);
-    const numericUnit = Number(String(unit || "").replace(",", "."));
-    if (Number.isFinite(numericUnit) && numericUnit > 0) return numericUnit;
-    return unit === UNIT_KG ? 0.5 : 1;
+    const customStep = parseQuantityStep(product?.quantityStep);
+    if (customStep !== null) return customStep;
+    const stepFromLegacyUnit = parseQuantityStep(product?.unit);
+    if (stepFromLegacyUnit !== null) return stepFromLegacyUnit;
+    return 1;
 }
 
 function roundQty(value) {
@@ -61,7 +62,19 @@ function roundQty(value) {
 function formatQty(qty) {
     const value = roundQty(qty);
     if (Number.isInteger(value)) return String(value);
-    return value.toFixed(1);
+    return value.toFixed(1).replace(".", ",");
+}
+
+function parseQuantityStep(rawValue) {
+    const parsed = Number.parseFloat(String(rawValue ?? "").replace(",", "."));
+    if (!Number.isFinite(parsed) || parsed <= 0) return null;
+    return parsed;
+}
+
+function resolveProductUnit(unitRaw) {
+    const customStep = parseQuantityStep(unitRaw);
+    if (customStep !== null) return UNIT_KG;
+    return normalizeUnit(unitRaw);
 }
 
 function hasPieceUnitInName(name) {
@@ -178,6 +191,8 @@ function parseCSV(csvText) {
         }
         usedIds.add(productId);
 
+        const quantityStep = parseQuantityStep(unitRaw);
+
         products.push({
             id: productId,
             name,
@@ -186,7 +201,8 @@ function parseCSV(csvText) {
             sale: parseSaleValue(saleRaw),
             available: isAvailable,
             emoji: iconRaw || "",
-            unit: normalizeUnit(unitRaw),
+            unit: resolveProductUnit(unitRaw),
+            quantityStep: quantityStep ?? undefined,
         });
     }
     return products;

@@ -13,6 +13,8 @@ function formatPrice(price) {
 function normalizeUnit(rawUnit) {
     const unit = String(rawUnit || "").trim().toLowerCase();
     if (!unit) return "";
+    const numericUnit = Number.parseFloat(unit.replace(",", "."));
+    if (Number.isFinite(numericUnit) && numericUnit > 0) return UNIT_KG;
     if (unit.includes(UNIT_KG) || unit.includes("kg")) return UNIT_KG;
     if (unit.includes(UNIT_PC) || unit.includes("pcs") || unit.includes("pc")) return UNIT_PC;
     return unit;
