@@ -148,7 +148,7 @@ body {
 .banner {
     background: linear-gradient(135deg, var(--green) 0%, #3d9d5e 100%);
     border-radius: var(--radius);
-    padding: 20px;
+    padding: 24px 20px;
     margin: 16px 16px 0;
     color: white;
     overflow: hidden;
@@ -156,7 +156,7 @@ body {
 }
 
 .banner-top {
-    margin: 0 16px 0;
+    margin: 8px 16px 0;
 }
 
 .banner::after {
