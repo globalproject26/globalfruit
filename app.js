@@ -20,6 +20,7 @@ let PRODUCTS_BY_ID = new Map(PRODUCTS.map((p) => [Number(p.id), p]));
 
 let cart = {};
 let activeCategory = null;
+let hasCategoryInteraction = false;
 const categoriesScrollInitialized = new WeakSet();
 const categoriesPointerState = new WeakMap();
 let isSyncingCategoryBars = false;
@@ -47,7 +48,10 @@ const $loadingBanner = document.getElementById("loading-banner");
 const $lastUpdateEl = document.getElementById("last-update");
 
 function getQuantityStep(product) {
-    return getProductUnit(product) === UNIT_KG ? 0.5 : 1;
+    const unit = getProductUnit(product);
+    const numericUnit = Number(String(unit || "").replace(",", "."));
+    if (Number.isFinite(numericUnit) && numericUnit > 0) return numericUnit;
+    return unit === UNIT_KG ? 0.5 : 1;
 }
 
 function roundQty(value) {
@@ -293,6 +297,9 @@ function renderCategoryChips() {
 
     if (finalCats.length > 0) {
         const availableIds = new Set(finalCats.map(c => c.id));
+        if (availableIds.has("sale") && !hasCategoryInteraction) {
+            activeCategory = "sale";
+        }
         if (!activeCategory || !availableIds.has(activeCategory)) {
             activeCategory = finalCats[0].id;
         }
@@ -355,6 +362,7 @@ function bindCategoryClick(bar) {
         const state = categoriesPointerState.get(bar);
         if (state?.ignoreNextClick || state?.startedDragging) return;
 
+        hasCategoryInteraction = true;
         activeCategory = chip.dataset.category;
         syncActiveChip();
         renderProducts();
@@ -907,6 +915,7 @@ function initSwipe() {
         }
 
         const nextChip = chips[nextIdx];
+        hasCategoryInteraction = true;
         activeCategory = nextChip.dataset.category;
         syncActiveChip();
         renderProducts();
