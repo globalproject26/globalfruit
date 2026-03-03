@@ -1,0 +1,162 @@
+/* ===================================================================
+   GLOBAL RESET & BASE
+   =================================================================== */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* Запрещаем прокрутку страницы */
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+
+/* ===================================================================
+   HEADER
+   =================================================================== */
+.header {
+    text-align: center;
+    padding: 2rem 1rem 1rem;
+    animation: fadeInDown 0.8s ease;
+}
+
+.header__title {
+    margin: 0 0 0.5rem;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.header__subtitle {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 400;
+    opacity: 0.9;
+}
+
+/* ===================================================================
+   BOTTOM AREA — кнопка WhatsApp
+   =================================================================== */
+.bottom-area {
+    padding: 1rem;
+    width: 100%;
+    max-width: 400px;
+    animation: fadeInUp 0.8s ease;
+}
+
+.wa-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+    color: #ffffff;
+    font-size: 1.125rem;
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 8px 24px rgba(37, 211, 102, 0.4);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.wa-button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease, height 0.6s ease;
+}
+
+.wa-button:hover::before,
+.wa-button:active::before {
+    width: 300px;
+    height: 300px;
+}
+
+.wa-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(37, 211, 102, 0.5);
+}
+
+.wa-button:active {
+    transform: translateY(0);
+    box-shadow: 0 6px 16px rgba(37, 211, 102, 0.3);
+}
+
+.wa-button svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+    z-index: 1;
+}
+
+/* ===================================================================
+   ANIMATIONS
+   =================================================================== */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+@media (max-width: 480px) {
+    .header__title {
+        font-size: 1.5rem;
+    }
+
+    .header__subtitle {
+        font-size: 0.875rem;
+    }
+
+    .wa-button {
+        font-size: 1rem;
+        padding: 0.875rem 1.5rem;
+    }
+}
