@@ -99,6 +99,19 @@ const LOG_PREFIX = "[ГлобалШоп]";
 const logInfo = (...args) => console.log(LOG_PREFIX, ...args);
 const logWarn = (...args) => console.warn(LOG_PREFIX, ...args);
 
+function trackMetaWhatsAppContact(payload = {}) {
+    if (typeof window.fbq !== "function") return;
+
+    const eventPayload = {
+        channel: "whatsapp",
+        page: "catalog",
+        ...payload,
+    };
+
+    window.fbq("track", "Contact", eventPayload);
+    window.fbq("trackCustom", "WhatsAppClick", eventPayload);
+}
+
 function saveCartToStorage() {
     try {
         localStorage.setItem(
@@ -703,6 +716,19 @@ function buildOrderText(items) {
 
 function buildWhatsAppText(items) {
     return encodeURIComponent(buildOrderText(items));
+}
+
+if ($whatsappBtn) {
+    $whatsappBtn.addEventListener("click", () => {
+        const items = getCartItems();
+        const totalPrice = items.reduce((sum, item) => sum + item.total, 0);
+
+        trackMetaWhatsAppContact({
+            num_items: items.length,
+            value: totalPrice,
+            currency: "KZT",
+        });
+    });
 }
 
 // ===== РћР§РРЎРўРРўР¬ РљРћР Р—РРќРЈ =====
