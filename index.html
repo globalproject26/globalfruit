@@ -51,11 +51,10 @@
 
 <body>
 
-    <!-- ===== ЭКРАН КАТАЛОГА ===== -->
     <div id="catalog-screen" class="screen active">
         <div class="banner banner-top">
             <div class="banner-content">
-                <span class="banner-emoji">🍎🥦🍊</span>
+                <span class="banner-emoji">🍎🥦🍉</span>
                 <div class="banner-copy">
                     <div class="banner-title">Global Fruit</div>
                     <div class="banner-text">Доставка по левому берегу и рядом</div>
@@ -72,23 +71,19 @@
             <div id="last-update" class="last-update"></div>
         </div>
 
-        <!-- Загрузка -->
         <div id="loading-banner" class="loading-banner" style="display:none;">
             <span class="loading-spinner"></span>
             Загружаю цены...
         </div>
 
-        <!-- Список товаров -->
         <div id="products-list" class="products-list"></div>
 
-        <!-- Пустой результат -->
         <div id="empty-state" class="empty-state" style="display:none;">
             <div class="empty-emoji">🔍</div>
             <p>Ничего не найдено</p>
         </div>
     </div>
 
-    <!-- ===== ЭКРАН КОРЗИНЫ ===== -->
     <div id="cart-screen" class="screen">
         <header class="cart-header">
             <h2 class="cart-title">🛒 Корзина</h2>
@@ -103,7 +98,6 @@
             <p class="cart-empty-sub">Добавьте товары из каталога</p>
         </div>
 
-        <!-- Текстовый блок заказа -->
         <div id="cart-summary" class="cart-summary" style="display:none;">
             <div class="summary-head">
                 <div class="summary-label">Ваш заказ:</div>
@@ -117,7 +111,6 @@
             <p class="cart-total-note">Сумма приблизительная, сейчас взвесим и покажем сколько получилось.</p>
         </div>
 
-        <!-- Кнопка WhatsApp -->
         <a id="whatsapp-btn" href="#" class="whatsapp-btn" style="display:none;" target="_blank" rel="noopener">
             <svg class="wa-icon" viewBox="0 0 24 24" fill="currentColor">
                 <path
@@ -127,7 +120,6 @@
         </a>
     </div>
 
-    <!-- ===== НИЖНЯЯ НАВИГАЦИЯ ===== -->
     <nav class="bottom-nav">
         <button class="nav-btn active" data-screen="catalog-screen">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
