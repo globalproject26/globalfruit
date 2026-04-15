@@ -4,7 +4,8 @@
 
 // ===== CONFIG =====
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRkeFxdnYccFA7PFOXn5EJXfINDocaG3OmfIgD29lt8Y18qZDKbuYjaBA4Mg7U9qwTcN2CvIEYNIY7P/pub?output=csv";
-const WA_PHONE = "77780878211";
+const DEFAULT_WA_PHONE = "77780878211";
+const PRICE_WA_PHONE = "77001653540";
 const CACHE_KEY = "globalshop_products_v2";
 const CACHE_TIME_KEY = "globalshop_products_ts_v2";
 const REFRESH_INTERVAL_MS = 300000; // 5 minutes
@@ -13,6 +14,16 @@ const CATEGORY_DRAG_THRESHOLD = 10;
 const CART_KEY = "globalshop_cart_v1";
 const CART_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const ACTIVE_SCREEN_KEY = "globalshop_active_screen";
+
+function getWhatsAppPhone() {
+    const path = String(window.location.pathname || "").replace(/\/+$/, "") || "/";
+    if (path === "/price" || path === "/price/index.html") {
+        return PRICE_WA_PHONE;
+    }
+    return DEFAULT_WA_PHONE;
+}
+
+const WA_PHONE = getWhatsAppPhone();
 
 // ===== STATE =====
 let PRODUCTS = [...FALLBACK_PRODUCTS];
