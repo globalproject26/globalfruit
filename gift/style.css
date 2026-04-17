@@ -115,6 +115,17 @@ a {
 
 .hero__after {
     display: block;
+    margin-top: 0.5rem;
+    padding-top: 0.4rem;
+}
+
+.hero__after-title {
+    margin: 0 0 0.55rem;
+    color: var(--latte-deep);
+    font-family: "Cormorant Garamond", serif;
+    font-size: 2rem;
+    line-height: 1;
+    font-weight: 600;
 }
 
 .hero__scroll {
@@ -588,7 +599,8 @@ body.is-locked {
     .hero__after {
         grid-area: after;
         align-self: start;
-        margin-top: -0.5rem;
+        margin-top: 1rem;
+        padding-top: 0;
     }
 
     .hero__scroll {

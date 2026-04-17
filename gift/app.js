@@ -293,7 +293,6 @@ function renderCart() {
                     <p class="cart-item__name">${item.name}</p>
                     <p class="cart-item__size">Размер: ${item.size}</p>
                     <p class="cart-item__composition">Состав: ${item.composition.join(", ")}</p>
-                    ${item.description ? `<p class="cart-item__description">${item.description}</p>` : ""}
                 </div>
                 <span class="cart-item__price">${formatPrice(item.price * item.qty)}</span>
             </div>
