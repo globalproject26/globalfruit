@@ -173,6 +173,7 @@ function mapRowToProduct(row) {
         name: cleanText(row.name) || `Корзина ${cleanText(row.id)}`,
         price,
         size: normalizeSize(row.size, price),
+        description: cleanText(row.opisanie || row.description),
         composition: splitComposition(row.sostav || row.composition),
         images: buildImages(row)
     };
@@ -226,6 +227,8 @@ function createCard(product) {
             <ul class="product-card__composition">
                 ${product.composition.map((item) => `<li>${item}</li>`).join("")}
             </ul>
+
+            ${product.description ? `<p class="product-card__description">${product.description}</p>` : ""}
 
             <div class="product-card__footer">
                 <div class="qty-control" data-qty-control="${product.id}">
@@ -290,6 +293,7 @@ function renderCart() {
                     <p class="cart-item__name">${item.name}</p>
                     <p class="cart-item__size">Размер: ${item.size}</p>
                     <p class="cart-item__composition">Состав: ${item.composition.join(", ")}</p>
+                    ${item.description ? `<p class="cart-item__description">${item.description}</p>` : ""}
                 </div>
                 <span class="cart-item__price">${formatPrice(item.price * item.qty)}</span>
             </div>
