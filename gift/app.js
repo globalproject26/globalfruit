@@ -1,4 +1,7 @@
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRu5mT2Sp-4h6s0zgAr01ptQRPW61pVd_KH3II2Put7sQvmWwWDPPUzA3FtBBjrq8P5eMzGYdTS63Ok/pub?gid=0&single=true&output=csv";
+const WA_PHONE = "77780878211";
+const SITE_PATH = "/gift";
+const CART_KEY = "globalfruit_gift_cart_v1";
 
 const DRIVE_IMAGE_MAP = {
     "101a": "1WokQWQGrccF_C7nCXQlrV1KuZoPM0e5S",
@@ -13,40 +16,42 @@ const IMAGE_SUFFIXES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
 const catalogList = document.getElementById("catalog-list");
 const catalogStatus = document.getElementById("catalog-status");
-const modal = document.getElementById("product-modal");
-const modalImage = document.getElementById("modal-image");
-const modalTitle = document.getElementById("modal-title");
-const modalPrice = document.getElementById("modal-price");
-const modalSize = document.getElementById("modal-size");
-const modalDescription = document.getElementById("modal-description");
-const modalComposition = document.getElementById("modal-composition");
-const modalDimensions = document.getElementById("modal-dimensions");
-const modalAction = document.getElementById("modal-action");
-const modalPrev = document.getElementById("modal-prev");
-const modalNext = document.getElementById("modal-next");
-const modalCounter = document.getElementById("modal-counter");
+const cartFab = document.getElementById("cart-fab");
+const cartFabMeta = document.getElementById("cart-fab-meta");
+const cartSheet = document.getElementById("cart-sheet");
+const cartBackdrop = document.getElementById("cart-backdrop");
+const cartClose = document.getElementById("cart-close");
+const cartEmpty = document.getElementById("cart-empty");
+const cartItems = document.getElementById("cart-items");
+const cartTotalPrice = document.getElementById("cart-total-price");
+const cartWhatsApp = document.getElementById("cart-whatsapp");
 
 let products = [];
-let currentProduct = null;
-let currentSlideIndex = 0;
-let touchStartX = 0;
-let touchDeltaX = 0;
+let cart = {};
+
+function isFileProtocol() {
+    return window.location.protocol === "file:";
+}
 
 function driveImageUrl(fileId) {
     return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1600`;
 }
 
 function cleanText(value) {
-    return (value || "").trim();
+    return String(value || "").trim();
 }
 
 function normalizePrice(value) {
     const digits = cleanText(value).replace(/[^\d]/g, "");
     if (!digits) {
-        return "Цена по запросу";
+        return 0;
     }
 
-    return `${new Intl.NumberFormat("ru-RU").format(Number(digits))} ₸`;
+    return Number(digits);
+}
+
+function formatPrice(value) {
+    return `${new Intl.NumberFormat("ru-RU").format(value)} ₸`;
 }
 
 function splitComposition(value) {
@@ -56,71 +61,18 @@ function splitComposition(value) {
         .filter(Boolean);
 }
 
-function prettifyAvailability(value) {
-    const normalized = cleanText(value).toLowerCase();
-    if (normalized === "in stock") {
-        return "В наличии";
-    }
-    if (normalized === "out of stock") {
-        return "Под заказ";
-    }
-    return cleanText(value) || "Уточняется";
-}
-
-function inferSizeFromPrice(priceValue) {
-    const digits = Number(cleanText(priceValue).replace(/[^\d]/g, ""));
-    if (!digits) {
-        return "Подарочная корзина";
-    }
-    if (digits <= 16000) {
-        return "Небольшая корзина";
-    }
-    if (digits <= 28000) {
-        return "Средняя корзина";
-    }
-    return "Большая корзина";
-}
-
-function buildImages(row) {
-    const directIds = cleanText(row.image_ids);
-    if (directIds) {
-        return directIds
-            .split(/[|,]/)
-            .map((item) => cleanText(item))
-            .filter(Boolean)
-            .map((fileId, index) => ({
-                id: `${row.id}-${index + 1}`,
-                src: driveImageUrl(fileId)
-            }));
+function normalizeSize(value, fallbackPrice) {
+    const raw = cleanText(value).toLowerCase();
+    if (raw) {
+        if (raw.includes("мини") || raw.includes("mini")) return "мини";
+        if (raw.includes("сред")) return "средняя";
+        if (raw.includes("больш")) return "большая";
+        return raw;
     }
 
-    const directUrls = cleanText(row.image_urls);
-    if (directUrls) {
-        return directUrls
-            .split(/[|,]/)
-            .map((item) => cleanText(item))
-            .filter(Boolean)
-            .map((src, index) => ({
-                id: `${row.id}-${index + 1}`,
-                src
-            }));
-    }
-
-    const collected = IMAGE_SUFFIXES
-        .map((suffix) => {
-            const imageId = DRIVE_IMAGE_MAP[`${row.id}${suffix}`];
-            if (!imageId) {
-                return null;
-            }
-
-            return {
-                id: `${row.id}${suffix}`,
-                src: driveImageUrl(imageId)
-            };
-        })
-        .filter(Boolean);
-
-    return collected;
+    if (fallbackPrice <= 16000) return "мини";
+    if (fallbackPrice <= 28000) return "средняя";
+    return "большая";
 }
 
 function parseCsvLine(line) {
@@ -132,9 +84,9 @@ function parseCsvLine(line) {
         const char = line[index];
         const nextChar = line[index + 1];
 
-        if (char === '"') {
-            if (inQuotes && nextChar === '"') {
-                current += '"';
+        if (char === "\"") {
+            if (inQuotes && nextChar === "\"") {
+                current += "\"";
                 index += 1;
             } else {
                 inQuotes = !inQuotes;
@@ -167,74 +119,121 @@ function parseCsv(text) {
     for (let index = 1; index < lines.length; index += 1) {
         const values = parseCsvLine(lines[index]);
         const row = {};
-
         headers.forEach((header, headerIndex) => {
             row[header] = values[headerIndex] || "";
         });
-
         rows.push(row);
     }
 
     return rows;
 }
 
-function mapRowToProduct(row) {
-    const composition = splitComposition(row.sostav || row.composition);
-    const images = buildImages(row);
-    const size = cleanText(row.size) || inferSizeFromPrice(row.price);
-    const availability = prettifyAvailability(row.availability);
+function buildImages(row) {
+    const directIds = cleanText(row.image_ids);
+    if (directIds) {
+        return directIds
+            .split(/[|,]/)
+            .map((item) => cleanText(item))
+            .filter(Boolean)
+            .map((fileId, index) => ({
+                id: `${row.id}-${index + 1}`,
+                src: driveImageUrl(fileId)
+            }));
+    }
 
+    const directUrls = cleanText(row.image_urls);
+    if (directUrls) {
+        return directUrls
+            .split(/[|,]/)
+            .map((item) => cleanText(item))
+            .filter(Boolean)
+            .map((src, index) => ({
+                id: `${row.id}-${index + 1}`,
+                src
+            }));
+    }
+
+    return IMAGE_SUFFIXES
+        .map((suffix) => {
+            const imageId = DRIVE_IMAGE_MAP[`${row.id}${suffix}`];
+            if (!imageId) return null;
+
+            return {
+                id: `${row.id}${suffix}`,
+                src: driveImageUrl(imageId)
+            };
+        })
+        .filter(Boolean);
+}
+
+function mapRowToProduct(row) {
+    const price = normalizePrice(row.price);
     return {
         id: cleanText(row.id),
         name: cleanText(row.name) || `Корзина ${cleanText(row.id)}`,
-        price: normalizePrice(row.price),
-        size,
-        dimensions: cleanText(row.dimensions) || `${size}. Статус: ${availability}.`,
-        description: cleanText(row.opisanie || row.description) || "Состав и детали можно открыть внутри карточки.",
-        composition,
-        compositionPreview: composition.slice(0, 4).join(", "),
-        availability,
-        images
+        price,
+        size: normalizeSize(row.size, price),
+        composition: splitComposition(row.sostav || row.composition),
+        images: buildImages(row)
     };
 }
 
+function getCartQuantity(productId) {
+    return Number(cart[productId] || 0);
+}
+
+function saveCart() {
+    try {
+        localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    } catch (error) {
+        console.warn("[GlobalFruit Gift] cart save error", error);
+    }
+}
+
+function loadCart() {
+    try {
+        const raw = localStorage.getItem(CART_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+            cart = parsed;
+        }
+    } catch (error) {
+        console.warn("[GlobalFruit Gift] cart load error", error);
+    }
+}
+
 function createCard(product) {
+    const quantity = getCartQuantity(product.id);
     const article = document.createElement("article");
     article.className = "product-card";
-    article.id = `product-${product.id}`;
+    article.dataset.productId = product.id;
 
     article.innerHTML = `
         <div class="product-card__media">
-            <span class="product-card__tag">${product.size}</span>
-            <img src="${product.images[0]?.src || ""}" alt="${product.name} — фруктовая корзина GlobalFruit" loading="lazy">
+            <span class="product-card__size">${product.size}</span>
+            <img class="product-card__image" src="${product.images[0]?.src || ""}" alt="${product.name}" loading="lazy">
         </div>
         <div class="product-card__body">
             <div class="product-card__head">
                 <div>
-                    <span class="product-card__number">${product.id}</span>
+                    <p class="product-card__number">${product.id}</p>
                     <h2 class="product-card__title">${product.name}</h2>
-                    <p class="product-card__price">${product.price}</p>
                 </div>
+                <p class="product-card__price">${formatPrice(product.price)}</p>
             </div>
 
-            <p class="product-card__description">${product.description}</p>
-
-            <div class="product-card__meta">
-                <div class="product-card__meta-item">
-                    <span>Размер</span>
-                    <strong>${product.size}</strong>
-                </div>
-                <div class="product-card__meta-item">
-                    <span>Наличие</span>
-                    <strong>${product.availability}</strong>
-                </div>
-            </div>
+            <ul class="product-card__composition">
+                ${product.composition.map((item) => `<li>${item}</li>`).join("")}
+            </ul>
 
             <div class="product-card__footer">
-                <p class="product-card__preview">${product.compositionPreview || "Откройте pop-up, чтобы увидеть весь состав."}</p>
-                <button class="product-card__button" type="button" data-product-id="${product.id}">
-                    Открыть состав
-                </button>
+                <div class="qty-control" data-qty-control="${product.id}">
+                    <button class="qty-control__button" type="button" data-action="minus" data-product-id="${product.id}">−</button>
+                    <span class="qty-control__value" data-qty-value="${product.id}">${quantity}</span>
+                    <button class="qty-control__button" type="button" data-action="plus" data-product-id="${product.id}">+</button>
+                </div>
+                <button class="product-card__cta" type="button" data-add-product-id="${product.id}">Добавить</button>
             </div>
         </div>
     `;
@@ -245,81 +244,95 @@ function createCard(product) {
 function renderCatalog(items) {
     catalogList.innerHTML = "";
     const fragment = document.createDocumentFragment();
+    items.forEach((product) => fragment.appendChild(createCard(product)));
+    catalogList.appendChild(fragment);
+}
 
-    items.forEach((product) => {
-        fragment.appendChild(createCard(product));
+function getCartEntries() {
+    return Object.entries(cart)
+        .map(([id, qty]) => {
+            const product = products.find((item) => item.id === id);
+            if (!product || qty <= 0) return null;
+            return { ...product, qty };
+        })
+        .filter(Boolean);
+}
+
+function buildOrderText(entries) {
+    const lines = ["Здравствуйте! Хочу оформить заказ.", "", `Сайт: ${SITE_PATH}`, ""];
+
+    entries.forEach((item, index) => {
+        lines.push(`${index + 1}. ${item.name}`);
+        lines.push(`Размер: ${item.size}`);
+        lines.push(`Количество: ${item.qty}`);
+        lines.push(`Состав: ${item.composition.join(", ")}`);
+        lines.push("");
     });
 
-    catalogList.appendChild(fragment);
-    setupReveal();
+    const total = entries.reduce((sum, item) => sum + item.price * item.qty, 0);
+    lines.push(`Итого: ${formatPrice(total)}`);
+    return lines.join("\n");
 }
 
-function updateModalSlide() {
-    if (!currentProduct || !currentProduct.images.length) {
-        return;
-    }
+function renderCart() {
+    const entries = getCartEntries();
+    const totalCount = entries.reduce((sum, item) => sum + item.qty, 0);
+    const totalPrice = entries.reduce((sum, item) => sum + item.price * item.qty, 0);
 
-    const image = currentProduct.images[currentSlideIndex];
-    modalImage.src = image.src;
-    modalImage.alt = `${currentProduct.name} — фото ${currentSlideIndex + 1}`;
+    cartFab.classList.toggle("is-hidden", totalCount === 0);
+    cartFabMeta.textContent = totalCount > 0 ? `${totalCount} · ${formatPrice(totalPrice)}` : "0";
+    cartEmpty.classList.toggle("is-hidden", entries.length > 0);
 
-    const multipleImages = currentProduct.images.length > 1;
-    modalPrev.classList.toggle("is-hidden", !multipleImages);
-    modalNext.classList.toggle("is-hidden", !multipleImages);
-    modalCounter.classList.toggle("is-hidden", !multipleImages);
-    modalCounter.textContent = `${currentSlideIndex + 1} / ${currentProduct.images.length}`;
+    cartItems.innerHTML = entries.map((item) => `
+        <article class="cart-item">
+            <div class="cart-item__top">
+                <div>
+                    <p class="cart-item__name">${item.name}</p>
+                    <p class="cart-item__size">Размер: ${item.size}</p>
+                    <p class="cart-item__composition">Состав: ${item.composition.join(", ")}</p>
+                </div>
+                <span class="cart-item__price">${formatPrice(item.price * item.qty)}</span>
+            </div>
+            <div class="cart-item__actions">
+                <div class="qty-control">
+                    <button class="qty-control__button" type="button" data-action="minus" data-product-id="${item.id}">−</button>
+                    <span class="qty-control__value">${item.qty}</span>
+                    <button class="qty-control__button" type="button" data-action="plus" data-product-id="${item.id}">+</button>
+                </div>
+            </div>
+        </article>
+    `).join("");
+
+    cartTotalPrice.textContent = formatPrice(totalPrice);
+    cartWhatsApp.href = `https://wa.me/${WA_PHONE}?text=${encodeURIComponent(buildOrderText(entries))}`;
+
+    document.querySelectorAll("[data-qty-value]").forEach((node) => {
+        const { qtyValue } = node.dataset;
+        node.textContent = getCartQuantity(qtyValue);
+    });
 }
 
-function changeSlide(step) {
-    if (!currentProduct || currentProduct.images.length < 2) {
-        return;
+function updateProductQuantity(productId, delta) {
+    const nextValue = Math.max(0, getCartQuantity(productId) + delta);
+    if (nextValue === 0) {
+        delete cart[productId];
+    } else {
+        cart[productId] = nextValue;
     }
-
-    currentSlideIndex = (currentSlideIndex + step + currentProduct.images.length) % currentProduct.images.length;
-    updateModalSlide();
+    saveCart();
+    renderCart();
 }
 
-function openModal(productId) {
-    currentProduct = products.find((item) => item.id === productId);
-    if (!currentProduct) {
-        return;
-    }
-
-    currentSlideIndex = 0;
-    modalTitle.textContent = currentProduct.name;
-    modalPrice.textContent = currentProduct.price;
-    modalSize.textContent = `${currentProduct.id} · ${currentProduct.size}`;
-    modalDescription.textContent = currentProduct.description;
-    modalDimensions.textContent = currentProduct.dimensions;
-    modalComposition.innerHTML = currentProduct.composition.map((item) => `<li>${item}</li>`).join("");
-    modalAction.href = `https://wa.me/77780878211?text=${encodeURIComponent(`Здравствуйте! Хочу узнать подробнее про корзину ${currentProduct.id} — ${currentProduct.name}.`)}`;
-
-    updateModalSlide();
-    modal.classList.add("is-open");
-    modal.setAttribute("aria-hidden", "false");
+function openCart() {
+    cartSheet.classList.add("is-open");
+    cartSheet.setAttribute("aria-hidden", "false");
     document.body.classList.add("is-locked");
 }
 
-function closeModal() {
-    modal.classList.remove("is-open");
-    modal.setAttribute("aria-hidden", "true");
+function closeCart() {
+    cartSheet.classList.remove("is-open");
+    cartSheet.setAttribute("aria-hidden", "true");
     document.body.classList.remove("is-locked");
-    currentProduct = null;
-    currentSlideIndex = 0;
-}
-
-function setupReveal() {
-    const cards = document.querySelectorAll(".product-card");
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add("is-visible");
-                observer.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.18 });
-
-    cards.forEach((card) => observer.observe(card));
 }
 
 function setStatus(message, hidden = false) {
@@ -328,86 +341,60 @@ function setStatus(message, hidden = false) {
 }
 
 async function loadCatalog() {
+    if (isFileProtocol()) {
+        setStatus("Для локальной проверки откройте страницу через start-local.cmd или локальный сервер, а не напрямую как файл.");
+        return;
+    }
+
     try {
-        setStatus("Загружаю корзины из Google Sheets...");
+        setStatus("Загружаю корзины...");
         const response = await fetch(CSV_URL, { cache: "no-store" });
         if (!response.ok) {
             throw new Error(`CSV request failed with ${response.status}`);
         }
 
         const text = await response.text();
-        const rows = parseCsv(text);
-        products = rows
+        products = parseCsv(text)
             .map(mapRowToProduct)
             .filter((item) => item.id && item.name && item.images.length);
 
-        if (!products.length) {
-            throw new Error("No valid products found in CSV");
-        }
-
         renderCatalog(products);
+        renderCart();
         setStatus("", true);
     } catch (error) {
-            console.error("[GlobalFruit Gift] Catalog load error:", error);
-        setStatus("Не получилось загрузить каталог из таблицы. Проверьте доступ к CSV и ссылки на изображения.");
+        console.error("[GlobalFruit Gift] Catalog load error:", error);
+        setStatus("Не получилось загрузить каталог. Для локальной проверки используйте start-local.cmd или локальный сервер.");
     }
 }
 
 function setupEvents() {
     document.addEventListener("click", (event) => {
-        const openButton = event.target.closest("[data-product-id]");
-        if (openButton) {
-            openModal(openButton.dataset.productId);
+        const qtyButton = event.target.closest("[data-action][data-product-id]");
+        if (qtyButton) {
+            const delta = qtyButton.dataset.action === "plus" ? 1 : -1;
+            updateProductQuantity(qtyButton.dataset.productId, delta);
             return;
         }
 
-        if (event.target.closest("[data-close-modal]")) {
-            closeModal();
-        }
-    });
-
-    modalPrev.addEventListener("click", () => changeSlide(-1));
-    modalNext.addEventListener("click", () => changeSlide(1));
-
-    modalImage.addEventListener("touchstart", (event) => {
-        touchStartX = event.changedTouches[0].clientX;
-        touchDeltaX = 0;
-    }, { passive: true });
-
-    modalImage.addEventListener("touchmove", (event) => {
-        touchDeltaX = event.changedTouches[0].clientX - touchStartX;
-    }, { passive: true });
-
-    modalImage.addEventListener("touchend", () => {
-        if (Math.abs(touchDeltaX) < 40) {
+        const addButton = event.target.closest("[data-add-product-id]");
+        if (addButton) {
+            updateProductQuantity(addButton.dataset.addProductId, 1);
+            openCart();
             return;
         }
-
-        if (touchDeltaX < 0) {
-            changeSlide(1);
-        } else {
-            changeSlide(-1);
-        }
     });
+
+    cartFab.addEventListener("click", openCart);
+    cartBackdrop.addEventListener("click", closeCart);
+    cartClose.addEventListener("click", closeCart);
 
     document.addEventListener("keydown", (event) => {
-        if (!modal.classList.contains("is-open")) {
-            return;
-        }
-
-        if (event.key === "Escape") {
-            closeModal();
-        }
-
-        if (event.key === "ArrowLeft") {
-            changeSlide(-1);
-        }
-
-        if (event.key === "ArrowRight") {
-            changeSlide(1);
+        if (event.key === "Escape" && cartSheet.classList.contains("is-open")) {
+            closeCart();
         }
     });
 }
 
+loadCart();
 setupEvents();
 loadCatalog();

@@ -4,112 +4,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GlobalFruit Gift - Каталог фруктовых корзин</title>
-    <meta name="description"
-        content="Лёгкий летний каталог фруктовых корзин GlobalFruit. Красивые подарочные наборы с подробным составом и мобильным просмотром.">
+    <title>GlobalFruit Gift - Фруктовые корзины</title>
+    <meta name="description" content="Каталог фруктовых корзин GlobalFruit с заказом через WhatsApp.">
     <meta property="og:title" content="GlobalFruit Gift">
-    <meta property="og:description"
-        content="Каталог фруктовых корзин в лёгком цветочном стиле: фото, цена, размер и полный состав в pop-up.">
+    <meta property="og:description" content="Лёгкий каталог фруктовых корзин с заказом через WhatsApp.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://globalfruit.kz/gift">
     <meta property="og:site_name" content="GlobalFruit">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div class="page-shell">
-        <div class="background-bloom bloom-left" aria-hidden="true"></div>
-        <div class="background-bloom bloom-right" aria-hidden="true"></div>
-
         <header class="hero">
-            <p class="hero__eyebrow">GlobalFruit Gift</p>
-            <h1 class="hero__title">Фруктовые корзины с вайбом цветочного бутика</h1>
-            <p class="hero__lead">
-                Лёгкие, солнечные и изысканные наборы для подарка, благодарности и красивого жеста без лишнего шума.
-            </p>
-
-            <div class="hero__palette" aria-label="Палитра страницы">
-                <span class="palette-chip palette-chip--darlington">Darlington</span>
-                <span class="palette-chip palette-chip--beeswax">Beeswax</span>
-                <span class="palette-chip palette-chip--grenadine">Grenadine</span>
-                <span class="palette-chip palette-chip--latte">Cafe Latte</span>
+            <div class="hero__copy">
+                <p class="hero__eyebrow">GlobalFruit Gift</p>
+                <h1 class="hero__title">Фруктовые корзины для красивого подарка</h1>
+                <p class="hero__lead">Собрали лёгкий каталог без лишнего шума. Выбирайте композицию, добавляйте нужное количество и отправляйте заказ в WhatsApp.</p>
             </div>
 
-            <div class="hero__meta">
-                <div class="meta-card">
-                    <span class="meta-card__label">Формат</span>
-                    <strong>Мобайл-first каталог</strong>
-                </div>
-                <div class="meta-card">
-                    <span class="meta-card__label">Просмотр</span>
-                    <strong>Карточка + pop-up состав</strong>
-                </div>
+            <div class="hero__visual">
+                <img class="hero__portrait" src="./assets/ginger.webp" alt="Девушка с манго в тёплом летнем интерьере">
             </div>
         </header>
 
         <main class="catalog">
-            <div class="catalog__intro">
-                <p class="catalog__caption">Листайте вниз и открывайте детали по каждой корзине</p>
-                <a class="catalog__cta" href="#catalog-list">Смотреть каталог</a>
-            </div>
-
-            <div class="catalog-status" id="catalog-status">Загружаю корзины из таблицы...</div>
+            <div class="catalog-status" id="catalog-status">Загружаю корзины...</div>
             <section class="catalog-list" id="catalog-list" aria-label="Каталог корзин"></section>
         </main>
     </div>
 
-    <div class="modal" id="product-modal" aria-hidden="true">
-        <div class="modal__backdrop" data-close-modal></div>
-        <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-            <button class="modal__close" type="button" aria-label="Закрыть карточку" data-close-modal>
-                <span aria-hidden="true">×</span>
-            </button>
+    <button class="cart-fab is-hidden" id="cart-fab" type="button" aria-label="Открыть корзину">
+        <span class="cart-fab__label">Корзина</span>
+        <span class="cart-fab__meta" id="cart-fab-meta">0</span>
+    </button>
 
-            <div class="modal__media-wrap">
-                <img class="modal__image" id="modal-image" src="" alt="">
-                <button class="modal__nav modal__nav--prev" id="modal-prev" type="button" aria-label="Предыдущее фото">
-                    <span aria-hidden="true">‹</span>
-                </button>
-                <button class="modal__nav modal__nav--next" id="modal-next" type="button" aria-label="Следующее фото">
-                    <span aria-hidden="true">›</span>
-                </button>
-                <div class="modal__counter" id="modal-counter"></div>
+    <div class="cart-sheet" id="cart-sheet" aria-hidden="true">
+        <div class="cart-sheet__backdrop" id="cart-backdrop"></div>
+        <aside class="cart-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="cart-title">
+            <div class="cart-sheet__header">
+                <div>
+                    <p class="cart-sheet__eyebrow">Заказ</p>
+                    <h2 class="cart-sheet__title" id="cart-title">Корзина</h2>
+                </div>
+                <button class="cart-sheet__close" id="cart-close" type="button" aria-label="Закрыть корзину">×</button>
             </div>
 
-            <div class="modal__content">
-                <div class="modal__head">
-                    <p class="modal__eyebrow" id="modal-size"></p>
-                    <h2 class="modal__title" id="modal-title"></h2>
-                    <p class="modal__price" id="modal-price"></p>
+            <div class="cart-sheet__body">
+                <div class="cart-empty" id="cart-empty">Пока ничего не выбрано.</div>
+                <div class="cart-items" id="cart-items"></div>
+            </div>
+
+            <div class="cart-sheet__footer">
+                <div class="cart-total">
+                    <span class="cart-total__label">Итого</span>
+                    <strong class="cart-total__value" id="cart-total-price">0 ₸</strong>
                 </div>
-
-                <p class="modal__description" id="modal-description"></p>
-
-                <div class="modal__section">
-                    <div class="modal__section-title">Состав</div>
-                    <ul class="modal__list" id="modal-composition"></ul>
-                </div>
-
-                <div class="modal__section">
-                    <div class="modal__section-title">Размер</div>
-                    <p class="modal__size-note" id="modal-dimensions"></p>
-                </div>
-
-                <a class="modal__action" id="modal-action" href="https://wa.me/77780878211" target="_blank"
-                    rel="noopener">
-                    Написать в WhatsApp
+                <a class="cart-sheet__whatsapp" id="cart-whatsapp" href="https://wa.me/77780878211" target="_blank" rel="noopener">
+                    Отправить в WhatsApp
                 </a>
-
-                <p class="modal__footnote">
-                    Сейчас карточки заполнены локально. Потом этот блок можно подключить к CSV без переделки дизайна.
-                </p>
             </div>
-        </div>
+        </aside>
     </div>
 
     <script src="app.js"></script>
