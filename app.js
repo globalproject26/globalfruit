@@ -4,8 +4,8 @@
 
 // ===== CONFIG =====
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRkeFxdnYccFA7PFOXn5EJXfINDocaG3OmfIgD29lt8Y18qZDKbuYjaBA4Mg7U9qwTcN2CvIEYNIY7P/pub?output=csv";
-const DEFAULT_WA_PHONE = "77780878211";
-const PRICE_WA_PHONE = "77001653540";
+const DEFAULT_WA_PHONE = "77001653540";
+const PRICE_WA_PHONE = "77780878211";
 const CACHE_KEY = "globalshop_products_v2";
 const CACHE_TIME_KEY = "globalshop_products_ts_v2";
 const REFRESH_INTERVAL_MS = 300000; // 5 minutes
